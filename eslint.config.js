@@ -14,6 +14,9 @@ export default tseslint.config(
       'docs/api/**',
       '**/*.config.js',
       '**/*.config.ts',
+      '**/*.config.mjs', // stryker.config.mjs (config, not shipped code)
+      '.stryker-tmp/**', // Stryker sandbox (mutated copies carry @ts-nocheck)
+      'reports/**', // generated mutation/HTML reports
     ],
   },
   js.configs.recommended,

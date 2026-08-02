@@ -1,0 +1,95 @@
+name: Release
+
+# Cut a release from a signed, gate-passing tag: build once, generate an SBOM,
+# attach signed build-provenance + SBOM attestations, and publish to npm with
+# provenance. Implements COMPLIANCE EX-2 (std-supplychain, workflow-release).
+#
+# Trigger: push a semver tag `vX.Y.Z`. `workflow_dispatch` allows a dry run
+# (publish is skipped unless a real tag is present).
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write # create the GitHub release + upload the SBOM/tarballs
+  id-token: write # OIDC for npm provenance + Sigstore attestations
+  attestations: write # actions/attest-* write signed attestations
+
+jobs:
+  release:
+    name: Build, attest & publish
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24
+          cache: pnpm
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install (frozen lockfile)
+        run: pnpm install --frozen-lockfile
+
+      # Full gate set must pass before anything is published (build once).
+      - name: Verify gates (build, format, lint, typecheck, test+coverage)
+        run: pnpm check
+
+      # Pack the workspace packages into immutable tarballs (the publish subject).
+      - name: Pack tarballs
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts
+          pnpm -r --filter "./packages/*" exec pnpm pack --pack-destination "$GITHUB_WORKSPACE/artifacts"
+          ls -l artifacts
+
+      # SBOM: vendored, checksum-verified Syft binary (same pattern as the
+      # gitleaks step) → CycloneDX JSON. No unpinned external action.
+      - name: Generate CycloneDX SBOM (Syft)
+        run: |
+          set -euo pipefail
+          V=1.50.0
+          F="syft_${V}_linux_amd64.tar.gz"
+          base="https://github.com/anchore/syft/releases/download/v${V}"
+          curl -fsSL "$base/$F" -o "$F"
+          curl -fsSL "$base/syft_${V}_checksums.txt" -o syft.sha
+          grep " $F\$" syft.sha | sha256sum -c -
+          tar -xzf "$F" syft
+          ./syft scan dir:. --source-name purelymail --source-version "${GITHUB_REF_NAME}" \
+            -o cyclonedx-json=artifacts/sbom.cdx.json
+          echo "SBOM_PATH=artifacts/sbom.cdx.json" >> "$GITHUB_ENV"
+
+      # Signed, non-falsifiable build provenance for the tarballs (SLSA).
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be # v2
+        with:
+          subject-path: 'artifacts/*.tgz'
+
+      # Signed attestation binding the SBOM to the tarballs.
+      - name: Attest SBOM
+        uses: actions/attest-sbom@bd218ad0dbcb3e146bd073d1d9c6d78e08aa8a0b # v2
+        with:
+          subject-path: 'artifacts/*.tgz'
+          sbom-path: 'artifacts/sbom.cdx.json'
+
+      # Publish to npm with provenance (id-token above). Only on a real tag.
+      - name: Publish to npm (with provenance)
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: pnpm -r --filter "./packages/*" publish --provenance --access public --no-git-checks
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      # Attach the SBOM + tarballs to the GitHub release for consumers/auditors.
+      - name: Create GitHub release + upload artifacts
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh release create "${GITHUB_REF_NAME}" \
+            --title "${GITHUB_REF_NAME}" \
+            --notes "See CHANGELOG.md. SBOM + signed provenance attached." \
+            artifacts/*.tgz artifacts/sbom.cdx.json

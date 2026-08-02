@@ -3,3 +3,7 @@ coverage/
 docs/api/
 pnpm-lock.yaml
 CHANGELOG.md
+
+# Mutation testing artifacts
+.stryker-tmp/
+reports/
