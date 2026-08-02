@@ -1,0 +1,15 @@
+{
+  "$schema": "https://typedoc.org/schema.json",
+  "entryPointStrategy": "resolve",
+  "entryPoints": ["packages/core/src/index.ts", "packages/cli/src/index.ts"],
+  "out": "docs/api",
+  "includeVersion": false,
+  "skipErrorChecking": true,
+  "githubPages": false,
+  "validation": {
+    "notExported": true,
+    "invalidLink": true,
+    "notDocumented": false
+  },
+  "treatValidationWarningsAsErrors": false
+}

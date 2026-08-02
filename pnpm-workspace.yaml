@@ -1,0 +1,7 @@
+packages:
+  - 'packages/*'
+
+# esbuild ships a platform binary via its install script; required by tsup/vitest.
+# Vetted, widely used build tool — allowed to run its build (std-supplychain).
+allowBuilds:
+  esbuild: true
