@@ -10,7 +10,7 @@ pnpm install
 pnpm check   # format:check + lint + typecheck + test (coverage) + build
 ```
 
-Node ≥ 20.11 (LTS). The repo is a pnpm workspace: `packages/core` (library) and
+Node ≥ 22.12 (24 LTS recommended). The repo is a pnpm workspace: `packages/core` (library) and
 `packages/cli` (CLI).
 
 ## Workflow

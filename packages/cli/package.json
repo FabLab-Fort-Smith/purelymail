@@ -22,7 +22,7 @@
     "mailbox"
   ],
   "engines": {
-    "node": ">=20.11.0"
+    "node": ">=22.12.0"
   },
   "type-note": "Unofficial. Not affiliated with or endorsed by PurelyMail.",
   "bin": {
@@ -51,11 +51,11 @@
   },
   "dependencies": {
     "@fablabfortsmith/purelymail-core": "workspace:*",
-    "commander": "13.0.0",
-    "smol-toml": "1.3.1",
-    "zod": "3.24.1"
+    "commander": "15.0.0",
+    "smol-toml": "1.7.1",
+    "zod": "4.4.3"
   },
   "optionalDependencies": {
-    "@napi-rs/keyring": "1.1.9"
+    "@napi-rs/keyring": "1.3.0"
   }
 }

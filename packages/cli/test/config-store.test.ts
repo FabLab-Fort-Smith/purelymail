@@ -98,6 +98,19 @@ describe('mutations', () => {
     expect(() => removeProfileEntry(next, 'missing')).toThrow(PurelymailConfigError);
   });
 
+  it('preserves the default when a different profile is removed', () => {
+    const data = {
+      defaultProfile: 'a',
+      profile: [
+        { name: 'a', tokenEnv: 'A' },
+        { name: 'b', tokenEnv: 'B' },
+      ],
+    };
+    const next = removeProfileEntry(data, 'b');
+    expect(next.defaultProfile).toBe('a');
+    expect(next.profile!.map((p) => p.name)).toEqual(['a']);
+  });
+
   it('sets a default that must exist', () => {
     expect(setDefaultProfile(base, 'a').defaultProfile).toBe('a');
     expect(() => setDefaultProfile(base, 'missing')).toThrow(PurelymailConfigError);

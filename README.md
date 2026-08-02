@@ -114,6 +114,6 @@ corepack enable && pnpm install
 pnpm check        # format + lint + typecheck + test (coverage) + build
 ```
 
-Node ≥ 20.11. See [`CONTRIBUTING.md`](./CONTRIBUTING.md) and
+Node ≥ 22.12 (24 LTS recommended). See [`CONTRIBUTING.md`](./CONTRIBUTING.md) and
 [`COMPLIANCE.md`](./COMPLIANCE.md) (SSDLC status + annotated, time-boxed
 exceptions). Licensed under [MIT](./LICENSE).

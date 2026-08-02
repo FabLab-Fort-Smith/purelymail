@@ -17,30 +17,30 @@ Not affiliated with or endorsed by PurelyMail.
 
 ## Applied rule modules
 
-@~/.claude/rules/lang-typescript.md
-@~/.claude/rules/lang-shell.md
-@~/.claude/rules/std-owasp-proactive.md
-@~/.claude/rules/std-cwe.md
-@~/.claude/rules/std-supplychain.md
-@~/.claude/rules/std-privacy.md
-@~/.claude/rules/topic-api-consumption.md
-@~/.claude/rules/topic-error-handling.md
-@~/.claude/rules/topic-defensive-programming.md
-@~/.claude/rules/topic-resource-management.md
-@~/.claude/rules/topic-config-environments.md
-@~/.claude/rules/topic-testing.md
-@~/.claude/rules/topic-documentation.md
-@~/.claude/rules/topic-license-compliance.md
-@~/.claude/rules/workflow-code-review.md
-@~/.claude/rules/workflow-cicd.md
-@~/.claude/rules/workflow-release.md
-@~/.claude/rules/workflow-vuln-mgmt.md
-@~/.claude/rules/workflow-cve-management.md
-@~/.claude/rules/workflow-threat-model.md
+@~~/.claude/rules/lang-typescript.md
+@~~/.claude/rules/lang-shell.md
+@~~/.claude/rules/std-owasp-proactive.md
+@~~/.claude/rules/std-cwe.md
+@~~/.claude/rules/std-supplychain.md
+@~~/.claude/rules/std-privacy.md
+@~~/.claude/rules/topic-api-consumption.md
+@~~/.claude/rules/topic-error-handling.md
+@~~/.claude/rules/topic-defensive-programming.md
+@~~/.claude/rules/topic-resource-management.md
+@~~/.claude/rules/topic-config-environments.md
+@~~/.claude/rules/topic-testing.md
+@~~/.claude/rules/topic-documentation.md
+@~~/.claude/rules/topic-license-compliance.md
+@~~/.claude/rules/workflow-code-review.md
+@~~/.claude/rules/workflow-cicd.md
+@~~/.claude/rules/workflow-release.md
+@~~/.claude/rules/workflow-vuln-mgmt.md
+@~~/.claude/rules/workflow-cve-management.md
+@~~/.claude/rules/workflow-threat-model.md
 
 ## Stack
 
-- Runtime: Node ≥ 20.11 (LTS), ESM, TypeScript strict.
+- Runtime: Node ≥ 22.12 (24 LTS recommended), ESM, TypeScript strict.
 - Packages: pnpm workspace; build via tsup; test via vitest; lint via
   typescript-eslint + eslint-plugin-jsdoc; docs via typedoc.
 - Runtime deps: `zod` (core); `commander` + `smol-toml` (CLI);
