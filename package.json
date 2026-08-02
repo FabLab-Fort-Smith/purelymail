@@ -19,6 +19,7 @@
     "test:watch": "vitest",
     "test:cov": "vitest run --coverage",
     "test:mutation": "stryker run",
+    "test:live": "vitest run --config vitest.live.config.ts",
     "docs": "typedoc",
     "audit": "pnpm audit --audit-level=high",
     "check": "pnpm run build && pnpm run format:check && pnpm run lint && pnpm run typecheck && pnpm run test:cov"
