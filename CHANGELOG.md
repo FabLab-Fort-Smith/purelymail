@@ -16,6 +16,11 @@ All notable changes to this project are documented here. The format follows
     backoff + jitter and `Retry-After`, per-request timeout, token redaction.
   - Multi-account/organization support: `Profile`, `ProfileRegistry`,
     `PurelymailWorkspace` (partial-failure-tolerant cross-account aggregation).
+  - Typed cross-account aggregators on `PurelymailWorkspace`:
+    `listUsers()`, `listRoutingRules()`, `checkCredit()` — each returns items
+    annotated with source `profile`/`org` plus per-account failures (parity with
+    `listDomains()`, so a library consumer gets org-level views without hand-
+    rolling `run()`). The CLI already aggregated these via `--all`/`--org`.
   - Low-level `request(spec)` escape hatch for new endpoints.
 - **`@fablabfortsmith/purelymail-cli`** — thin `commander` CLI:
   - Commands for every operation plus `profiles list|orgs`.
