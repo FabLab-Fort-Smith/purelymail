@@ -1,0 +1,33 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build output
+dist/
+*.tsbuildinfo
+
+# Test / coverage
+coverage/
+.vitest/
+
+# Secrets & local config — NEVER commit (see workflow-secrets)
+.env
+.env.*
+!.env.example
+*.token
+config.local.*
+# Local PurelyMail profile store may reference secrets — keep it out of VCS
+purelymail.config.toml
+
+# Editor / OS
+.DS_Store
+.idea/
+.vscode/
+*.log
+
+# Docs build
+docs/api/
+
+# SBOM / release artifacts (generated in CI)
+sbom*.json
+*.tgz

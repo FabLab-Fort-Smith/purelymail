@@ -1,0 +1,28 @@
+# gitleaks configuration (secret scanning). Runs in CI and (recommended) as a
+# pre-commit hook. Extends the default ruleset.
+title = "purelymail secret scan"
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "purelymail-api-token-assignment"
+description = "Possible PurelyMail API token committed"
+# Flag a long token-like value assigned to a PURELYMAIL_* / token variable.
+regex = '''(?i)(purelymail[_-]?(api[_-]?)?token|api[_-]?token)\s*[:=]\s*['"]?[A-Za-z0-9_\-]{20,}['"]?'''
+tags = ["token", "purelymail"]
+
+[allowlist]
+description = "Ignore placeholders, examples, and tests"
+paths = [
+  '''\.env\.example$''',
+  '''examples/.*''',
+  '''.*\.test\.ts$''',
+  '''docs/.*''',
+]
+# Common placeholder values used in docs/tests.
+regexes = [
+  '''tok_SECRET_123456''',
+  '''t-123456''',
+  '''PURELYMAIL_TOKEN_[A-Z_]+''',
+]

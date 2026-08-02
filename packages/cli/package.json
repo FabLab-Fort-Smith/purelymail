@@ -1,0 +1,61 @@
+{
+  "name": "@fablabfortsmith/purelymail-cli",
+  "version": "0.1.0",
+  "description": "Unofficial command-line interface to manage PurelyMail domains, users/mailboxes, routing, password resets and app passwords — with multi-account/organization support. Built on @fablabfortsmith/purelymail-core.",
+  "type": "module",
+  "license": "MIT",
+  "author": "Fab Lab Fort Smith",
+  "homepage": "https://github.com/FabLab-Fort-Smith/purelymail#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/FabLab-Fort-Smith/purelymail.git",
+    "directory": "packages/cli"
+  },
+  "bugs": {
+    "url": "https://github.com/FabLab-Fort-Smith/purelymail/issues"
+  },
+  "keywords": [
+    "purelymail",
+    "email",
+    "cli",
+    "dns",
+    "mailbox"
+  ],
+  "engines": {
+    "node": ">=20.11.0"
+  },
+  "type-note": "Unofficial. Not affiliated with or endorsed by PurelyMail.",
+  "bin": {
+    "purelymail": "./dist/bin.js"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@fablabfortsmith/purelymail-core": "workspace:*",
+    "commander": "13.0.0",
+    "smol-toml": "1.3.1",
+    "zod": "3.24.1"
+  },
+  "optionalDependencies": {
+    "@napi-rs/keyring": "1.1.9"
+  }
+}

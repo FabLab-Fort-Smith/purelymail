@@ -1,0 +1,55 @@
+{
+  "name": "@fablabfortsmith/purelymail-core",
+  "version": "0.1.0",
+  "description": "Unofficial, framework-free TypeScript client for the PurelyMail API: domains, users/mailboxes, routing, password-reset methods, app passwords, account credit, plus multi-account/organization aggregation. Reusable in CLIs, services, and web backends.",
+  "type": "module",
+  "license": "MIT",
+  "author": "Fab Lab Fort Smith",
+  "homepage": "https://github.com/FabLab-Fort-Smith/purelymail#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/FabLab-Fort-Smith/purelymail.git",
+    "directory": "packages/core"
+  },
+  "bugs": {
+    "url": "https://github.com/FabLab-Fort-Smith/purelymail/issues"
+  },
+  "keywords": [
+    "purelymail",
+    "email",
+    "api-client",
+    "sdk",
+    "dns",
+    "mailbox",
+    "typescript"
+  ],
+  "engines": {
+    "node": ">=20.11.0"
+  },
+  "type-note": "Unofficial. Not affiliated with or endorsed by PurelyMail.",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "sideEffects": false,
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "zod": "3.24.1"
+  }
+}
