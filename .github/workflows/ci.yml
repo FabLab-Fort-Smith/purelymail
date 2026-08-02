@@ -9,8 +9,10 @@ on:
 permissions:
   contents: read
 
-# NOTE (supply chain): before making this repo public, pin each `uses:` action to
-# a commit SHA (digest) rather than a moving tag. Tracked in COMPLIANCE.md (EX-1).
+# NOTE (supply chain): before relying on this in production, pin each `uses:`
+# action to a commit SHA (digest) rather than a moving tag. Tracked in
+# COMPLIANCE.md (EX-1). Node 22 is the floor (pnpm 11.18 + commander 15 require
+# Node >= 22.12); 24 is the current LTS.
 jobs:
   build-test:
     name: Build & test (Node ${{ matrix.node }})
@@ -18,7 +20,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: [20, 22]
+        node: [22, 24]
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -28,6 +30,9 @@ jobs:
           cache: pnpm
       - name: Install (frozen lockfile)
         run: pnpm install --frozen-lockfile
+      # Build first so the workspace's own types resolve for lint/typecheck.
+      - name: Build
+        run: pnpm build
       - name: Format check
         run: pnpm format:check
       - name: Lint
@@ -36,8 +41,6 @@ jobs:
         run: pnpm typecheck
       - name: Test + coverage (gates enforced in vitest.config.ts)
         run: pnpm test:cov
-      - name: Build
-        run: pnpm build
       - name: Docs build (fails on broken links; TSDoc presence enforced by eslint)
         run: pnpm run docs
 
@@ -51,7 +54,7 @@ jobs:
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
           cache: pnpm
       - name: Install (frozen lockfile)
         run: pnpm install --frozen-lockfile

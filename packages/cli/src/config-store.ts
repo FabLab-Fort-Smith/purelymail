@@ -35,7 +35,10 @@ export function readConfigData(path: string): ConfigData {
   }
   const result = configSchema.safeParse(parsed);
   if (!result.success) {
-    const issues = result.error.issues.map((i) => `${i.path.join('.') || '(root)'}: ${i.message}`);
+    const issues = result.error.issues.map(
+      /* v8 ignore next -- "(root)" fallback is unreachable here: TOML always parses to a table so issue paths are non-empty */
+      (i) => `${i.path.join('.') || '(root)'}: ${i.message}`,
+    );
     throw new PurelymailConfigError(`Invalid config at ${path}: ${issues.join('; ')}`);
   }
   return { defaultProfile: result.data.defaultProfile, profile: result.data.profile ?? [] };

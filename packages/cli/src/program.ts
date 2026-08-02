@@ -42,7 +42,7 @@ function pick(obj: Record<string, unknown>): GlobalOptions {
       out[key] = value;
     }
   }
-  return out as GlobalOptions;
+  return out;
 }
 
 /**

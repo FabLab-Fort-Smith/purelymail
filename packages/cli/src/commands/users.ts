@@ -41,7 +41,7 @@ export function registerUsers(program: Command, ctxFrom: (cmd: Command) => CliCo
       if (ctx.json) {
         printJson(ctx.io, res);
       } else {
-        printRecord(ctx.io, res as unknown as Record<string, unknown>);
+        printRecord(ctx.io, res);
       }
     });
 

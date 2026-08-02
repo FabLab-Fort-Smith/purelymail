@@ -15,7 +15,7 @@ and an **expiry** (time-box) — no permanent, silent exceptions.
 | Requirement                                               | Status        | Notes                                                    |
 | --------------------------------------------------------- | ------------- | -------------------------------------------------------- |
 | Language + standard modules, secure-by-default            | ✅ Met        | strict TS/ESM, zod validation, https-only, fail-closed   |
-| Tests: 100% critical / ≥90% line+branch; regression tests | ✅ Met        | enforced per-file in `vitest.config.ts` (170 tests)      |
+| Tests: 100% critical / ≥90% line+branch; regression tests | ✅ Met        | enforced per-file in `vitest.config.ts` (209 tests)      |
 | Lint/format/type-check clean                              | ✅ Met        | `pnpm check` green                                       |
 | CI security gates (SAST/SCA/secret/IaC/image)             | ⚠️ Partial    | see EX-1 (repo not yet hosted); config committed         |
 | No secrets committed; sensitive data redacted             | ✅ Met        | token via provider only; client redacts; gitleaks config |
@@ -69,7 +69,7 @@ and an **expiry** (time-box) — no permanent, silent exceptions.
   action unsuitable for default CI.
 - **Compensating control:** the client is validated against the **official
   OpenAPI spec** (see `docs/reference/purelymail-api.md`); every request/response
-  is schema-checked; a fake transport drives 170 deterministic tests.
+  is schema-checked; a fake transport drives 209 deterministic tests.
 - **Exit / expiry:** add an opt-in, secret-gated integration job (manual dispatch)
   **before v1.0.0**; keep it out of PR CI.
 
@@ -103,10 +103,22 @@ and an **expiry** (time-box) — no permanent, silent exceptions.
 These are the only places test coverage is deliberately excluded, each annotated
 inline and justified (defensive, effectively-unreachable branches):
 
-| Location                                                      | Annotation                   | Reason                                                                     |
-| ------------------------------------------------------------- | ---------------------------- | -------------------------------------------------------------------------- |
-| `packages/core/src/auth/token-provider.ts` (`readProcessEnv`) | `/* v8 ignore next */`       | non-Node host fallback (`process.env` absent) — unreachable under Node     |
-| `packages/cli/src/config-file.ts` (`statSync` catch)          | `/* v8 ignore start/stop */` | `statSync` of a file just read by `readFileSync` does not fail in practice |
+| Location                                                      | Annotation                   | Reason                                                                      |
+| ------------------------------------------------------------- | ---------------------------- | --------------------------------------------------------------------------- |
+| `packages/core/src/auth/token-provider.ts` (`readProcessEnv`) | `/* v8 ignore next */`       | non-Node host fallback (`process.env` absent) — unreachable under Node      |
+| `packages/cli/src/config-file.ts` (`statSync` catch)          | `/* v8 ignore start/stop */` | `statSync` of a file just read by `readFileSync` does not fail in practice  |
+| `packages/cli/src/prompt.ts` (`askSecret` echo mute)          | `/* v8 ignore start/stop */` | TTY echo suppression only runs on an interactive terminal (not headless CI) |
+| `packages/cli/src/config-store.ts` (`(root)` path fallback)   | `/* v8 ignore next */`       | TOML always parses to a table, so zod issue paths are never empty here      |
+
+## Dependency currency
+
+Dependencies are pinned to exact, latest **compatible** stable versions
+(reviewed 2026-08-02). One deliberate hold: **TypeScript is pinned to 6.0.3, not
+7.0.x** — the current `typescript-eslint@8.65` (supports TS `<6.1.0`) and
+`typedoc@0.28` (supports TS `≤6.0.x`) do not yet support the TypeScript 7 native
+compiler, so adopting it would break the mandated lint + docs gates. Re-evaluate
+when the toolchain adds TS 7 support. Node floor is **22.12** (required by
+`pnpm@11.18` and `commander@15`).
 
 ## Not applicable
 

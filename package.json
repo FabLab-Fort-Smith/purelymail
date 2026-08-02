@@ -5,9 +5,9 @@
   "description": "Monorepo root for the PurelyMail core library and CLI (unofficial).",
   "type": "module",
   "engines": {
-    "node": ">=20.11.0"
+    "node": ">=22.13.0"
   },
-  "packageManager": "pnpm@11.7.0",
+  "packageManager": "pnpm@11.18.0",
   "scripts": {
     "build": "pnpm -r build",
     "typecheck": "pnpm -r typecheck",
@@ -20,19 +20,19 @@
     "test:cov": "vitest run --coverage",
     "docs": "typedoc",
     "audit": "pnpm audit --audit-level=high",
-    "check": "pnpm run format:check && pnpm run lint && pnpm run typecheck && pnpm run test:cov && pnpm run build"
+    "check": "pnpm run build && pnpm run format:check && pnpm run lint && pnpm run typecheck && pnpm run test:cov"
   },
   "devDependencies": {
-    "@eslint/js": "9.18.0",
-    "@types/node": "20.19.9",
-    "@vitest/coverage-v8": "2.1.9",
-    "eslint": "9.18.0",
-    "eslint-plugin-jsdoc": "50.6.1",
-    "prettier": "3.4.2",
-    "tsup": "8.3.5",
-    "typedoc": "0.27.6",
-    "typescript": "5.7.3",
-    "typescript-eslint": "8.20.0",
-    "vitest": "2.1.9"
+    "@eslint/js": "10.0.1",
+    "@types/node": "26.1.2",
+    "@vitest/coverage-v8": "4.1.10",
+    "eslint": "10.8.0",
+    "eslint-plugin-jsdoc": "63.3.2",
+    "prettier": "3.9.6",
+    "tsup": "8.5.1",
+    "typedoc": "0.28.20",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.65.0",
+    "vitest": "4.1.10"
   }
 }

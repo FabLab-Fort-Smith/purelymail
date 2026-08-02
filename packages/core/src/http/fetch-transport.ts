@@ -34,7 +34,7 @@ export class FetchTransport implements HttpTransport {
    * @param options - Optionally supply a custom `fetch` (defaults to the global).
    */
   public constructor(options?: { fetch?: FetchLike }) {
-    const resolved = options?.fetch ?? (globalThis.fetch as unknown as FetchLike | undefined);
+    const resolved = options?.fetch ?? globalThis.fetch;
     if (typeof resolved !== 'function') {
       throw new PurelymailTransportError(
         'No global fetch available; pass a `fetch` implementation to FetchTransport.',
