@@ -31,3 +31,12 @@ docs/api/
 # SBOM / release artifacts (generated in CI)
 sbom*.json
 *.tgz
+
+# Mutation testing (StrykerJS)
+.stryker-tmp/
+reports/
+
+# Release build artifacts (SBOM, tarballs) + vendored scan binaries
+artifacts/
+/syft
+/gitleaks

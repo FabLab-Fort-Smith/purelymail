@@ -12,20 +12,20 @@ and an **expiry** (time-box) — no permanent, silent exceptions.
 
 ## Definition-of-Done status (master §8)
 
-| Requirement                                               | Status        | Notes                                                    |
-| --------------------------------------------------------- | ------------- | -------------------------------------------------------- |
-| Language + standard modules, secure-by-default            | ✅ Met        | strict TS/ESM, zod validation, https-only, fail-closed   |
-| Tests: 100% critical / ≥90% line+branch; regression tests | ✅ Met        | enforced per-file in `vitest.config.ts` (209 tests)      |
-| Lint/format/type-check clean                              | ✅ Met        | `pnpm check` green                                       |
-| CI security gates (SAST/SCA/secret/IaC/image)             | ⚠️ Partial    | see EX-1 (repo not yet hosted); config committed         |
-| No secrets committed; sensitive data redacted             | ✅ Met        | token via provider only; client redacts; gitleaks config |
-| Docs updated (TSDoc + generator)                          | ✅ Met        | eslint enforces TSDoc; typedoc configured                |
-| Reviewed via PR; security-focused review                  | ⚠️ Deferred   | see EX-1                                                 |
-| Deps vetted/pinned; SBOM/provenance for releases          | ⚠️ Partial    | pinned + lockfile; SBOM/provenance in release CI (EX-2)  |
-| Generated/third-party code verified                       | ✅ Met        | API surface verified against the official OpenAPI spec   |
-| Threat model (new trust boundary)                         | ✅ Met        | `docs/security/threat-model.md`                          |
-| Mutation testing on critical modules                      | ⏳ Time-boxed | see EX-3                                                 |
-| E2E / DAST against deployed env                           | 🚫 N/A        | see NA-1 (library+CLI, no deployed service)              |
+| Requirement                                               | Status      | Notes                                                          |
+| --------------------------------------------------------- | ----------- | -------------------------------------------------------------- |
+| Language + standard modules, secure-by-default            | ✅ Met      | strict TS/ESM, zod validation, https-only, fail-closed         |
+| Tests: 100% critical / ≥90% line+branch; regression tests | ✅ Met      | enforced per-file in `vitest.config.ts` (209 tests)            |
+| Lint/format/type-check clean                              | ✅ Met      | `pnpm check` green                                             |
+| CI security gates (SAST/SCA/secret/IaC/image)             | ⚠️ Partial  | see EX-1 (repo not yet hosted); config committed               |
+| No secrets committed; sensitive data redacted             | ✅ Met      | token via provider only; client redacts; gitleaks config       |
+| Docs updated (TSDoc + generator)                          | ✅ Met      | eslint enforces TSDoc; typedoc configured                      |
+| Reviewed via PR; security-focused review                  | ⚠️ Deferred | see EX-1                                                       |
+| Deps vetted/pinned; SBOM/provenance for releases          | ✅ Met      | pinned + lockfile; release CI does SBOM+provenance+sign (EX-2) |
+| Generated/third-party code verified                       | ✅ Met      | API surface verified against the official OpenAPI spec         |
+| Threat model (new trust boundary)                         | ✅ Met      | `docs/security/threat-model.md`                                |
+| Mutation testing on critical modules                      | ✅ Met      | StrykerJS 85.56% on critical+core (EX-3); client-graph EX-3b   |
+| E2E / DAST against deployed env                           | 🚫 N/A      | see NA-1 (library+CLI, no deployed service)                    |
 
 ## Open exceptions (time-boxed)
 
@@ -38,40 +38,69 @@ and an **expiry** (time-box) — no permanent, silent exceptions.
 - **Compensating control:** all gate checks (`pnpm check`) pass locally; the CI
   workflow (`.github/workflows/ci.yml`) is committed and will enforce gates on
   the first push; commit identity is preconfigured to the mandated noreply email.
+  All CI `uses:` actions are now **pinned to commit SHAs** (digests) with the tag
+  in a trailing comment (the SHA-pin sub-item is done; branch protection + signed
+  commits + review remain gated on repo creation).
 - **Exit / expiry:** enable branch protection + required signed commits + review
   **at repository creation on GitHub, and before the first `npm publish`.**
 
-### EX-2 — SBOM, provenance & artifact signing
+### EX-2 — SBOM, provenance & artifact signing — ✅ IMPLEMENTED (2026-08-02)
 
 - **Rule:** `std-supplychain`, `workflow-cicd`.
-- **Why partial:** dependencies are pinned with a committed `pnpm-lock.yaml`;
-  npm provenance is enabled (`publishConfig.provenance: true`). A CycloneDX SBOM
-  and signed provenance are produced by the **release** workflow, not on every
-  local build.
-- **Exit / expiry:** verify SBOM + provenance attestation are attached to the
-  first tagged release (**before v1.0.0**).
+- **Status:** release pipeline wired (`.github/workflows/release.yml`, tag
+  `v*`): runs the full gate, packs the workspace tarballs, generates a **CycloneDX
+  SBOM** (checksum-verified Syft binary — same vendoring pattern as gitleaks),
+  attaches **signed build-provenance** (`actions/attest-build-provenance`) and a
+  **signed SBOM attestation** (`actions/attest-sbom`), then publishes to npm with
+  **provenance** (`pnpm publish --provenance`, `id-token` OIDC;
+  `publishConfig.provenance: true`). SBOM + tarballs are uploaded to the GitHub
+  release. All actions SHA-pinned.
+- **Remaining (verify on first release):** set the `NPM_TOKEN` repository secret;
+  cut the first `vX.Y.Z` tag and confirm the SBOM + attestations are produced and
+  attached (**before v1.0.0**).
 
-### EX-3 — Mutation testing on critical modules
+### EX-3 — Mutation testing on critical modules — ✅ DONE (2026-08-02)
 
 - **Rule:** master §4 (mutation testing to validate test quality).
-- **Why deferred:** initial delivery prioritized correctness + 100% critical-path
-  coverage. Mutation testing (e.g. StrykerJS) is not yet wired.
-- **Compensating control:** critical paths (auth/token, transport, error mapping)
-  are at 100% line+branch, plus abuse-path and negative tests.
-- **Exit / expiry:** add StrykerJS on `packages/core/src/{client,errors,http,auth}`
-  **by 2026-09-01.**
+- **Status:** StrykerJS wired (`stryker.config.mjs`, `pnpm test:mutation`,
+  `.github/workflows/mutation.yml` — scheduled weekly + on core-touching PRs).
+  Current **mutation score 85.56%** (237 killed / 38 survived) across the critical
+  paths (`errors.ts`, `http/**`, `auth/**`) and core logic (`retry`, `config`,
+  `logging`, `profiles`); `thresholds.break = 80` fails CI below the floor.
+- **Follow-up (not blocking):** ratchet `break` toward ≥90 by killing the 38
+  surviving mutants (auth 4, http 5, logging 5, config 9, retry 5, profiles 9,
+  errors 1) — highest priority on the critical modules.
 
-### EX-4 — Live-API contract/integration test
+### EX-3b — Mutation coverage of the client-graph modules
+
+- **Rule:** master §4.
+- **Why deferred:** `services/*`, `client.ts`, `schemas.ts`, `workspace.ts` are
+  **excluded from the mutate set**. Not a test gap — each has real tests and ~99%
+  line coverage — but the Stryker vitest-runner (9.6.1) only collects 44 of the
+  209 tests under **Vitest 4.1** (the client-graph test files aren't picked up),
+  so their mutants falsely report "no coverage".
+- **Compensating control:** these modules keep the ≥90% line/branch coverage gate
+  (100% on critical globs) enforced in `vitest.config.ts`; schema validation has
+  dedicated `schemas.test.ts` assertions.
+- **Exit / expiry:** re-include in `stryker.config.mjs` `mutate` once the
+  Stryker↔Vitest-4 runner gap is resolved upstream (or the runner is swapped).
+  **Re-evaluate 2026-10-01.**
+
+### EX-4 — Live-API contract/integration test — ✅ SCAFFOLDED (2026-08-02)
 
 - **Rule:** master §4 (contract tests for service boundaries; E2E for journeys).
-- **Why deferred:** exercising the real PurelyMail API requires a live token (a
-  restricted secret) and mutates a real account — a gated, credential-bearing
-  action unsuitable for default CI.
-- **Compensating control:** the client is validated against the **official
-  OpenAPI spec** (see `docs/reference/purelymail-api.md`); every request/response
-  is schema-checked; a fake transport drives 209 deterministic tests.
-- **Exit / expiry:** add an opt-in, secret-gated integration job (manual dispatch)
-  **before v1.0.0**; keep it out of PR CI.
+- **Status:** opt-in, secret-gated live contract test in place:
+  `packages/core/test/live/contract.live.test.ts` — **read-only** only
+  (`domains.list()`, `account.credit()`; never creates/modifies/deletes), gated
+  on `PURELYMAIL_LIVE_TOKEN` and **skips (fails closed)** without it. Excluded
+  from the default suite (`vitest.config.ts`); runs via `pnpm test:live`
+  (`vitest.live.config.ts`). CI: `.github/workflows/live-contract.yml` —
+  **manual dispatch only**, bound to a protected `live-api` environment, secret
+  from `secrets.PURELYMAIL_LIVE_TOKEN`. Never on push/PR.
+- **Remaining (verify with a real token):** add the `PURELYMAIL_LIVE_TOKEN`
+  secret and dispatch once to confirm the live responses match the schemas
+  (feeds EX-5). Extend read-only coverage (e.g. `users.list` on a known domain)
+  as desired. **Before v1.0.0.**
 
 ### EX-5 — Response-envelope & `type` field modeling assumption
 

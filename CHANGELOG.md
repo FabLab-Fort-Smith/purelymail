@@ -30,4 +30,25 @@ All notable changes to this project are documented here. The format follows
     the env-var source prints the `export` line without writing the secret.
     Refuses to run in a non-interactive shell (fails closed).
 
+### Testing
+- **Mutation testing (StrykerJS)** wired via `stryker.config.mjs` +
+  `pnpm test:mutation` (EX-3). Scoped to the critical paths (`errors`, `http`,
+  `auth`) and core logic (`retry`, `config`, `logging`, `profiles`); current
+  score **85.56%**, CI `break` gate at 80. Runs weekly and on core-touching PRs
+  (`.github/workflows/mutation.yml`). Client-graph modules deferred pending a
+  Stryker↔Vitest-4 runner fix (EX-3b).
+- **Live-API contract test (opt-in, secret-gated)** — `pnpm test:live` +
+  `vitest.live.config.ts` + `packages/core/test/live/contract.live.test.ts`
+  (EX-4). Read-only (`domains.list`, `account.credit`), gated on
+  `PURELYMAIL_LIVE_TOKEN`, skips (fails closed) without it, excluded from the
+  default suite. CI: `.github/workflows/live-contract.yml` (manual dispatch only,
+  protected `live-api` environment).
+
+### Security / CI
+- All CI `uses:` actions **pinned to commit SHAs** (digests) with the version in
+  a trailing comment (std-supplychain; EX-1 SHA-pin sub-item).
+- **Release pipeline** (`.github/workflows/release.yml`, tag `v*`) producing a
+  **CycloneDX SBOM** (checksum-verified Syft), **signed build-provenance + SBOM
+  attestations**, and npm publish **with provenance** (EX-2). SHA-pinned.
+
 [Unreleased]: https://github.com/FabLab-Fort-Smith/purelymail/commits/main

@@ -1,4 +1,4 @@
-import { defineConfig } from 'vitest/config';
+import { configDefaults, defineConfig } from 'vitest/config';
 
 /**
  * Root Vitest config for the workspace.
@@ -11,6 +11,9 @@ import { defineConfig } from 'vitest/config';
 export default defineConfig({
   test: {
     include: ['packages/*/test/**/*.test.ts'],
+    // Live-API contract tests are opt-in + secret-gated (EX-4) — never part of
+    // the default/CI suite. They run only via `pnpm test:live`.
+    exclude: [...configDefaults.exclude, '**/*.live.test.ts'],
     environment: 'node',
     clearMocks: true,
     coverage: {
