@@ -30,6 +30,37 @@ function factory(profile: Profile): PurelymailClient {
   return new PurelymailClient({ token: 't-123456', transport });
 }
 
+function routingRule(name: string): unknown {
+  return {
+    id: 1,
+    domainName: `${name}.com`,
+    prefix: false,
+    matchUser: 'info',
+    targetAddresses: [`box@${name}.com`],
+    catchall: false,
+  };
+}
+
+/** A client that routes by operation, reflecting the profile (or failing for "bad"). */
+function multiFactory(profile: Profile): PurelymailClient {
+  const transport = new FakeTransport((req) => {
+    if (profile.name === 'bad') {
+      return jsonResponse(500, { message: 'down' });
+    }
+    if (req.url.endsWith('/listUser')) {
+      return success(200, { users: [`user@${profile.name}.com`] });
+    }
+    if (req.url.endsWith('/listRoutingRules')) {
+      return success(200, { rules: [routingRule(profile.name)] });
+    }
+    if (req.url.endsWith('/checkAccountCredit')) {
+      return success(200, { credit: `${profile.name}-5.00` });
+    }
+    return success(200, { domains: [domain(`${profile.name}.com`)] });
+  });
+  return new PurelymailClient({ token: 't-123456', transport });
+}
+
 describe('PurelymailWorkspace', () => {
   const registry = new ProfileRegistry([
     profile('a', 'acme'),
@@ -63,6 +94,41 @@ describe('PurelymailWorkspace', () => {
     expect(agg.items.every((d) => d.org === 'acme')).toBe(true);
     expect(agg.failures).toHaveLength(1);
     expect(agg.failures[0]!.org).toBe('beta');
+  });
+
+  it('aggregates usernames tagged with profile/org and surfaces failures', async () => {
+    const ws = new PurelymailWorkspace({ clientFactory: multiFactory });
+    const agg = await ws.listUsers(registry.select({ all: true }));
+    expect(agg.items.map((u) => u.username).sort()).toEqual(['user@a.com', 'user@b.com']);
+    expect(agg.items.every((u) => u.org === 'acme')).toBe(true);
+    expect(agg.failures).toHaveLength(1);
+    expect(agg.failures[0]!.profile).toBe('bad');
+  });
+
+  it('aggregates routing rules tagged with profile/org', async () => {
+    const ws = new PurelymailWorkspace({ clientFactory: multiFactory });
+    const agg = await ws.listRoutingRules(registry.select({ org: 'acme' }));
+    expect(agg.items).toHaveLength(2);
+    expect(agg.items.map((r) => r.domainName).sort()).toEqual(['a.com', 'b.com']);
+    expect(agg.items.every((r) => r.matchUser === 'info')).toBe(true);
+    expect(agg.failures).toHaveLength(0);
+  });
+
+  it('reports one credit entry per account and surfaces failures', async () => {
+    const ws = new PurelymailWorkspace({ clientFactory: multiFactory });
+    const agg = await ws.checkCredit(registry.select({ all: true }));
+    expect(agg.items).toHaveLength(2);
+    expect(agg.items.map((c) => c.credit).sort()).toEqual(['a-5.00', 'b-5.00']);
+    expect(agg.failures.map((f) => f.profile)).toEqual(['bad']);
+  });
+
+  it('threads signal and timeout through the new aggregators', async () => {
+    const ac = new AbortController();
+    const ws = new PurelymailWorkspace({ clientFactory: multiFactory });
+    const call = { signal: ac.signal, timeoutMs: 1234 };
+    expect((await ws.listUsers([profile('a', 'acme')], call)).items).toHaveLength(1);
+    expect((await ws.listRoutingRules([profile('a', 'acme')], call)).items).toHaveLength(1);
+    expect((await ws.checkCredit([profile('a', 'acme')], call)).items).toHaveLength(1);
   });
 
   it('caches the client per profile', async () => {

@@ -14,7 +14,7 @@ import { PurelymailClient } from './client.js';
 import type { PurelymailClientOptions } from './config.js';
 import { PurelymailError } from './errors.js';
 import type { Profile } from './profiles.js';
-import type { DomainInfo } from './types.js';
+import type { DomainInfo, RoutingRule } from './types.js';
 import type { CallOptions } from './internal.js';
 
 /** A successful per-account outcome. */
@@ -46,6 +46,34 @@ export type AccountOutcome<T> = AccountSuccess<T> | AccountFailure;
 
 /** A domain annotated with the account/org it came from. */
 export interface AggregatedDomain extends DomainInfo {
+  /** Source profile name. */
+  readonly profile: string;
+  /** Source organization, if any. */
+  readonly org: string | undefined;
+}
+
+/** A username annotated with the account/org it came from. */
+export interface AggregatedUser {
+  /** The username (email local part / full address, per the API). */
+  readonly username: string;
+  /** Source profile name. */
+  readonly profile: string;
+  /** Source organization, if any. */
+  readonly org: string | undefined;
+}
+
+/** A routing rule annotated with the account/org it came from. */
+export interface AggregatedRoutingRule extends RoutingRule {
+  /** Source profile name. */
+  readonly profile: string;
+  /** Source organization, if any. */
+  readonly org: string | undefined;
+}
+
+/** One account's remaining credit, annotated with the account/org. */
+export interface AggregatedCredit {
+  /** Remaining account credit (currency string, as returned by the API). */
+  readonly credit: string;
   /** Source profile name. */
   readonly profile: string;
   /** Source organization, if any. */
@@ -167,6 +195,87 @@ export class PurelymailWorkspace {
       profile: outcome.profile,
       org: outcome.org,
     }));
+  }
+
+  /**
+   * Aggregate all usernames across the selected accounts, each tagged with its
+   * source `profile`/`org`. Partial failures are returned, not thrown.
+   *
+   * @param profiles - The accounts to include.
+   * @param options - Per-call overrides.
+   * @returns Flattened annotated usernames plus any per-account failures.
+   */
+  public async listUsers(
+    profiles: readonly Profile[],
+    options?: CallOptions,
+  ): Promise<Aggregated<AggregatedUser>> {
+    const call = this.#toCallOptions(options);
+    const outcomes = await this.run(
+      profiles,
+      async (client) => (await client.users.list(call)).users,
+    );
+    return this.#aggregate(outcomes, (username, outcome) => ({
+      username,
+      profile: outcome.profile,
+      org: outcome.org,
+    }));
+  }
+
+  /**
+   * Aggregate all routing rules across the selected accounts, each tagged with
+   * its source `profile`/`org`. Partial failures are returned, not thrown.
+   *
+   * @param profiles - The accounts to include.
+   * @param options - Per-call overrides.
+   * @returns Flattened annotated routing rules plus any per-account failures.
+   */
+  public async listRoutingRules(
+    profiles: readonly Profile[],
+    options?: CallOptions,
+  ): Promise<Aggregated<AggregatedRoutingRule>> {
+    const call = this.#toCallOptions(options);
+    const outcomes = await this.run(
+      profiles,
+      async (client) => (await client.routing.list(call)).rules,
+    );
+    return this.#aggregate(outcomes, (rule, outcome) => ({
+      ...rule,
+      profile: outcome.profile,
+      org: outcome.org,
+    }));
+  }
+
+  /**
+   * Report remaining credit for each selected account, tagged with its source
+   * `profile`/`org`. Unlike the list aggregators this yields exactly one item
+   * per successful account. Partial failures are returned, not thrown.
+   *
+   * @param profiles - The accounts to include.
+   * @param options - Per-call overrides.
+   * @returns One annotated credit entry per account plus any failures.
+   */
+  public async checkCredit(
+    profiles: readonly Profile[],
+    options?: CallOptions,
+  ): Promise<Aggregated<AggregatedCredit>> {
+    const call = this.#toCallOptions(options);
+    // Credit is a single value per account; wrap it so `#aggregate` annotates it.
+    const outcomes = await this.run(profiles, async (client) => [
+      await client.account.credit(call),
+    ]);
+    return this.#aggregate(outcomes, (result, outcome) => ({
+      credit: result.credit,
+      profile: outcome.profile,
+      org: outcome.org,
+    }));
+  }
+
+  /** Build a {@link CallOptions} carrying only the defined per-call overrides. */
+  #toCallOptions(options?: CallOptions): CallOptions {
+    return {
+      ...(options?.signal ? { signal: options.signal } : {}),
+      ...(options?.timeoutMs !== undefined ? { timeoutMs: options.timeoutMs } : {}),
+    };
   }
 
   #aggregate<TIn, TOut>(
