@@ -1,0 +1,44 @@
+name: Mutation testing
+
+# Mutation testing validates test *quality* (master §4) — it's slower than the
+# unit suite, so it runs weekly, on demand, and on PRs that touch the mutated
+# core modules or the mutation/test config, rather than on every push.
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 6 * * 1' # Mondays 06:00 UTC
+  pull_request:
+    branches: [main]
+    paths:
+      - 'packages/core/src/**'
+      - 'packages/core/test/**'
+      - 'stryker.config.mjs'
+      - 'vitest.config.ts'
+
+permissions:
+  contents: read
+
+jobs:
+  mutation:
+    name: Stryker mutation score
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - name: Install (frozen lockfile)
+        run: pnpm install --frozen-lockfile
+      # Stryker runs Vitest directly against TypeScript source — no build needed.
+      # The break threshold in stryker.config.mjs fails the job below the floor.
+      - name: Mutation test (Stryker)
+        run: pnpm test:mutation
+      - name: Upload mutation HTML report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: mutation-report
+          path: reports/mutation/
+          if-no-files-found: ignore

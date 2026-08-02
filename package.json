@@ -18,12 +18,16 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:cov": "vitest run --coverage",
+    "test:mutation": "stryker run",
     "docs": "typedoc",
     "audit": "pnpm audit --audit-level=high",
     "check": "pnpm run build && pnpm run format:check && pnpm run lint && pnpm run typecheck && pnpm run test:cov"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
+    "@stryker-mutator/core": "^9.6.1",
+    "@stryker-mutator/typescript-checker": "^9.6.1",
+    "@stryker-mutator/vitest-runner": "^9.6.1",
     "@types/node": "26.1.2",
     "@vitest/coverage-v8": "4.1.10",
     "eslint": "10.8.0",
