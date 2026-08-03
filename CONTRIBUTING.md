@@ -13,6 +13,16 @@ pnpm check   # format:check + lint + typecheck + test (coverage) + build
 Node ≥ 22.12 (24 LTS recommended). The repo is a pnpm workspace: `packages/core` (library) and
 `packages/cli` (CLI).
 
+## Live smoke test (manual)
+
+`scripts/e2e-live.sh <verified-domain>` runs a full end-to-end check against the **real**
+PurelyMail API — reads plus the user / app-password / password-reset / routing lifecycles —
+using throwaway `clitest*` resources it deletes (even on early exit via an EXIT trap). It needs a
+live token (read from the configured profile's token env var, or prompted **masked**) and a domain
+you have verified. Because it mutates the account it is **not** a CI gate; CI's sanctioned live
+check is the read-only, secret-gated `.github/workflows/live-contract.yml` (COMPLIANCE EX-4). Build
+the CLI first: `pnpm --filter @fablabfortsmith/purelymail-cli build`.
+
 ## Workflow
 
 - Branch from `main`: `type/short-description` (e.g. `feat/routing-import`).
