@@ -2,9 +2,11 @@ import { useEffect, useState, type ReactElement } from 'react';
 import { Box, Text, useApp, useInput } from 'ink';
 import type { Profile, PurelymailWorkspace } from '@fablabfortsmith/purelymail-core';
 import { fetchTab, TABS, type Tab, type TableModel } from '../data.js';
-import { createUser, type NewUserForm } from '../mutations.js';
+import { createUser, deleteUser, modifyUser, type NewUserForm } from '../mutations.js';
 import { Table } from './Table.js';
 import { CreateUserForm } from './forms/CreateUserForm.js';
+import { EditUserForm, type EditUserFormValues } from './forms/EditUserForm.js';
+import { ConfirmPrompt } from './forms/ConfirmPrompt.js';
 
 /** Props for the {@link Dashboard}. */
 export interface DashboardProps {
@@ -15,7 +17,13 @@ export interface DashboardProps {
 /** Tabs where a row can be selected for row-scoped actions. */
 const SELECTABLE: ReadonlySet<Tab> = new Set<Tab>(['users', 'routing']);
 
-type Mode = 'browse' | 'create-user';
+type Mode = 'browse' | 'create-user' | 'edit-user' | 'confirm-delete-user';
+
+/** The user a row-scoped action targets. */
+interface UserTarget {
+  readonly userName: string;
+  readonly profileName: string;
+}
 
 /**
  * Multi-org dashboard with interactive management. A tabbed, aggregated view
@@ -36,6 +44,7 @@ export function Dashboard({ workspace, profiles }: DashboardProps): ReactElement
   const [selected, setSelected] = useState(0);
   const [mode, setMode] = useState<Mode>('browse');
   const [feedback, setFeedback] = useState<string | null>(null);
+  const [target, setTarget] = useState<UserTarget | null>(null);
 
   const rows = model?.rows.length ?? 0;
   const clamped = rows === 0 ? 0 : Math.min(selected, rows - 1);
@@ -68,22 +77,71 @@ export function Dashboard({ workspace, profiles }: DashboardProps): ReactElement
     setTab((t) => TABS[(TABS.indexOf(t) + delta + TABS.length) % TABS.length] ?? t);
   };
 
+  const clientFor = (profileName: string): ReturnType<PurelymailWorkspace['client']> | null => {
+    const profile = profiles.find((p) => p.name === profileName);
+    return profile ? workspace.client(profile) : null;
+  };
+  const fail = (cause: unknown): void =>
+    setFeedback(`Error: ${cause instanceof Error ? cause.message : String(cause)}`);
+
   const handleCreateUser = (form: NewUserForm): void => {
     setMode('browse');
-    const target = profiles[0];
-    if (!target) {
+    const account = profiles[0];
+    if (!account) {
       setFeedback('No account to create in.');
       return;
     }
     setFeedback(`Creating ${form.localPart}@${form.domain}…`);
-    createUser(workspace.client(target), form)
+    createUser(workspace.client(account), form)
       .then(() => {
         setFeedback(`Created ${form.localPart}@${form.domain}`);
         refresh();
       })
-      .catch((cause: unknown) => {
-        setFeedback(`Error: ${cause instanceof Error ? cause.message : String(cause)}`);
-      });
+      .catch(fail);
+  };
+
+  const handleEditUser = (values: EditUserFormValues): void => {
+    setMode('browse');
+    const client = target ? clientFor(target.profileName) : null;
+    if (!target || !client) {
+      setFeedback('No account for the selected user.');
+      return;
+    }
+    setFeedback(`Updating ${target.userName}…`);
+    modifyUser(client, {
+      userName: target.userName,
+      newLocalPart: values.newLocalPart,
+      newPassword: values.newPassword,
+    })
+      .then(() => {
+        setFeedback(`Updated ${target.userName}`);
+        refresh();
+      })
+      .catch(fail);
+  };
+
+  const handleDeleteUser = (): void => {
+    setMode('browse');
+    const client = target ? clientFor(target.profileName) : null;
+    if (!target || !client) {
+      setFeedback('No account for the selected user.');
+      return;
+    }
+    const name = target.userName;
+    setFeedback(`Deleting ${name}…`);
+    deleteUser(client, name)
+      .then(() => {
+        setFeedback(`Deleted ${name}`);
+        refresh();
+      })
+      .catch(fail);
+  };
+
+  const targetSelectedUser = (): UserTarget | null => {
+    const row = model?.rows[clamped];
+    const userName = row?.['username'] ?? '';
+    const profileName = row?.['profile'] ?? '';
+    return userName !== '' && profileName !== '' ? { userName, profileName } : null;
   };
 
   useInput((input, key) => {
@@ -105,6 +163,20 @@ export function Dashboard({ workspace, profiles }: DashboardProps): ReactElement
     } else if (input === 'n' && tab === 'users') {
       setFeedback(null);
       setMode('create-user');
+    } else if (input === 'e' && tab === 'users') {
+      const t = targetSelectedUser();
+      if (t) {
+        setTarget(t);
+        setFeedback(null);
+        setMode('edit-user');
+      }
+    } else if (input === 'd' && tab === 'users') {
+      const t = targetSelectedUser();
+      if (t) {
+        setTarget(t);
+        setFeedback(null);
+        setMode('confirm-delete-user');
+      }
     }
   });
 
@@ -132,6 +204,18 @@ export function Dashboard({ workspace, profiles }: DashboardProps): ReactElement
             onSubmit={handleCreateUser}
             onCancel={() => setMode('browse')}
             {...(domainHint !== undefined ? { domainHint } : {})}
+          />
+        ) : mode === 'edit-user' && target ? (
+          <EditUserForm
+            userName={target.userName}
+            onSubmit={handleEditUser}
+            onCancel={() => setMode('browse')}
+          />
+        ) : mode === 'confirm-delete-user' && target ? (
+          <ConfirmPrompt
+            message={`Delete ${target.userName}? This cannot be undone.`}
+            onConfirm={handleDeleteUser}
+            onCancel={() => setMode('browse')}
           />
         ) : loading ? (
           <Text dimColor>Loading {tab}…</Text>
@@ -163,7 +247,7 @@ export function Dashboard({ workspace, profiles }: DashboardProps): ReactElement
       <Box marginTop={1}>
         <Text dimColor>
           [tab/←→] view {SELECTABLE.has(tab) ? '[↑↓] select ' : ''}
-          {tab === 'users' ? '[n] new ' : ''}[r] refresh [q] quit
+          {tab === 'users' ? '[n]ew [e]dit [d]el ' : ''}[r] refresh [q] quit
         </Text>
       </Box>
     </Box>
