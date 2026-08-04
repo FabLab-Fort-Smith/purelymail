@@ -53,12 +53,27 @@ importers:
 
   packages/cli:
     dependencies:
+      '@fablabfortsmith/purelymail-config':
+        specifier: workspace:*
+        version: link:../config
       '@fablabfortsmith/purelymail-core':
         specifier: workspace:*
         version: link:../core
       commander:
         specifier: 15.0.0
         version: 15.0.0
+      smol-toml:
+        specifier: 1.7.1
+        version: 1.7.1
+      zod:
+        specifier: 4.4.3
+        version: 4.4.3
+
+  packages/config:
+    dependencies:
+      '@fablabfortsmith/purelymail-core':
+        specifier: workspace:*
+        version: link:../core
       smol-toml:
         specifier: 1.7.1
         version: 1.7.1
@@ -78,9 +93,9 @@ importers:
 
   packages/tui:
     dependencies:
-      '@fablabfortsmith/purelymail-cli':
+      '@fablabfortsmith/purelymail-config':
         specifier: workspace:*
-        version: link:../cli
+        version: link:../config
       '@fablabfortsmith/purelymail-core':
         specifier: workspace:*
         version: link:../core

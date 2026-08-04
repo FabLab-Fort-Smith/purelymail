@@ -15,7 +15,7 @@ export {
   type LoadedProfiles,
   type ConfigData,
   type ProfileEntry,
-} from './config-file.js';
+} from '@fablabfortsmith/purelymail-config';
 export {
   readConfigData,
   writeConfigData,
@@ -30,7 +30,7 @@ export {
   KEYCHAIN_SERVICE,
   type KeyringLoader,
   type KeyringEntry,
-} from './token-resolvers.js';
+} from '@fablabfortsmith/purelymail-config';
 export { createPrompter, Prompter, type PromptIO, type Choice } from './prompt.js';
 export {
   CliError,

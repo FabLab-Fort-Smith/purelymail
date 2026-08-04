@@ -9,7 +9,7 @@ import {
   type HttpResponse,
 } from '@fablabfortsmith/purelymail-core';
 import { run } from '../src/program.js';
-import { loadProfiles } from '../src/config-file.js';
+import { loadProfiles } from '@fablabfortsmith/purelymail-config';
 import { capture, clientFactory, ok, registry } from './helpers.js';
 
 const reg = registry([['acme', 'Org']]);

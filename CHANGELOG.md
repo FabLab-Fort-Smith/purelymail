@@ -41,7 +41,13 @@ All notable changes to this project are documented here. The format follows
   tagged with its profile/org and per-account failures surfaced inline. Keys:
   `tab`/`←→` switch view, `r` refresh, `q` quit. Pure data layer (`data.ts`) is
   unit-tested; components have an ink-testing-library render smoke. Profiles/
-  tokens load via the CLI's config (token stays in env/keychain).
+  tokens load via the shared config package (token stays in env/keychain).
+- **`@fablabfortsmith/purelymail-config`** — new shared package holding the
+  profile/config loader (`loadProfiles`, `resolveConfigPath`) and token
+  resolvers (`KeychainTokenProvider`, env/keychain), extracted from the CLI so
+  the CLI **and** TUI load accounts the same way. The CLI re-exports these for a
+  stable public API; the TUI now depends on `-config` instead of `-cli`. The
+  optional `@napi-rs/keyring` dependency moved with it.
 
 ### Testing
 - **Mutation testing (StrykerJS)** wired via `stryker.config.mjs` +
