@@ -29,7 +29,7 @@ export const API_PREFIX = '/api/v0';
 export const DEFAULT_TIMEOUT_MS = 30_000;
 
 /** Library version, embedded in the default `User-Agent`. Keep in sync with package.json. */
-export const LIB_VERSION = '0.1.0';
+export const LIB_VERSION = '0.2.0';
 
 /** Options accepted by the {@link PurelymailClient} constructor. */
 export interface PurelymailClientOptions {

@@ -20,7 +20,7 @@ import { registerUsers } from './commands/users.js';
 import { exitCodeFor, messageFor, stdio, type IO } from './output.js';
 
 /** CLI version (keep in sync with package.json). */
-export const CLI_VERSION = '0.1.0';
+export const CLI_VERSION = '0.2.0';
 
 /** Raw shape of parsed global options (before normalization). */
 interface RawGlobalOptions {
