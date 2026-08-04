@@ -42,6 +42,12 @@ All notable changes to this project are documented here. The format follows
   `tab`/`←→` switch view, `r` refresh, `q` quit. Pure data layer (`data.ts`) is
   unit-tested; components have an ink-testing-library render smoke. Profiles/
   tokens load via the shared config package (token stays in env/keychain).
+  - **Interactive management** on the users/routing tabs: select a row (↑/↓),
+    then create (`n`), edit users (`e`), or delete (`d`, confirmed) — acting on
+    that row's own account; multi-account creates prompt for the target account.
+    Passwords entered masked; mutations go through the same `core` services as
+    the CLI. Keystroke-driven forms (self-contained `useInput` fields), fully
+    interaction-tested.
 - **`@fablabfortsmith/purelymail-config`** — new shared package holding the
   profile/config loader (`loadProfiles`, `resolveConfigPath`) and token
   resolvers (`KeychainTokenProvider`, env/keychain), extracted from the CLI so
