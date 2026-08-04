@@ -1,6 +1,6 @@
 {
   "name": "@fablabfortsmith/purelymail-core",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Unofficial, framework-free TypeScript client for the PurelyMail API: domains, users/mailboxes, routing, password-reset methods, app passwords, account credit, plus multi-account/organization aggregation. Reusable in CLIs, services, and web backends.",
   "type": "module",
   "license": "MIT",
