@@ -14,6 +14,8 @@ interface Recorder {
   create: unknown[];
   modify: unknown[];
   del: unknown[];
+  routingCreate: unknown[];
+  routingDelete: unknown[];
 }
 
 function makeWs(rec: Recorder): PurelymailWorkspace {
@@ -23,6 +25,10 @@ function makeWs(rec: Recorder): PurelymailWorkspace {
       modify: (i: unknown) => (rec.modify.push(i), Promise.resolve({})),
       delete: (i: unknown) => (rec.del.push(i), Promise.resolve({})),
     },
+    routing: {
+      create: (i: unknown) => (rec.routingCreate.push(i), Promise.resolve({})),
+      delete: (i: unknown) => (rec.routingDelete.push(i), Promise.resolve({})),
+    },
   } as unknown as PurelymailClient;
   return {
     listDomains: () => Promise.resolve({ items: [], failures: [] }),
@@ -31,19 +37,42 @@ function makeWs(rec: Recorder): PurelymailWorkspace {
         items: [{ profile: 'a', org: 'acme', username: 'u@a.com' }],
         failures: [],
       }),
-    listRoutingRules: () => Promise.resolve({ items: [], failures: [] }),
+    listRoutingRules: () =>
+      Promise.resolve({
+        items: [
+          {
+            profile: 'a',
+            org: 'acme',
+            id: 7,
+            domainName: 'a.com',
+            prefix: false,
+            matchUser: 'info',
+            targetAddresses: ['x@a.com'],
+            catchall: false,
+          },
+        ],
+        failures: [],
+      }),
     checkCredit: () => Promise.resolve({ items: [], failures: [] }),
     client: () => client,
   } as unknown as PurelymailWorkspace;
 }
 
 function rec(): Recorder {
-  return { create: [], modify: [], del: [] };
+  return { create: [], modify: [], del: [], routingCreate: [], routingDelete: [] };
 }
 
 async function gotoUsers(stdin: { write: (s: string) => void }): Promise<void> {
   await sleep(); // domains settled
   stdin.write('\t'); // -> users
+  await sleep();
+}
+
+async function gotoRouting(stdin: { write: (s: string) => void }): Promise<void> {
+  await sleep(); // domains settled
+  stdin.write('\t'); // -> users
+  await sleep();
+  stdin.write('\t'); // -> routing
   await sleep();
 }
 
@@ -109,5 +138,51 @@ describe('Dashboard CRUD — users', () => {
     await sleep();
     expect(r.del).toHaveLength(0);
     expect(lastFrame() ?? '').not.toContain('Delete u@a.com?');
+  });
+});
+
+describe('Dashboard CRUD — routing', () => {
+  it('creates a rule via n', async () => {
+    const r = rec();
+    const { stdin, lastFrame } = render(<Dashboard workspace={makeWs(r)} profiles={profiles} />);
+    await gotoRouting(stdin);
+    stdin.write('n'); // open create-routing form
+    await sleep();
+    stdin.write('\r'); // accept prefilled domain a.com -> match
+    await sleep();
+    stdin.write('sales'); // match local part
+    await sleep();
+    stdin.write('\r'); // -> targets
+    await sleep();
+    stdin.write('a@x.com, b@x.com'); // targets
+    await sleep();
+    stdin.write('\r'); // -> prefix
+    await sleep();
+    stdin.write('n'); // prefix? no -> catchall
+    await sleep();
+    stdin.write('n'); // catchall? no -> submit
+    await sleep(100);
+    expect(r.routingCreate).toHaveLength(1);
+    expect(r.routingCreate[0]).toEqual({
+      domainName: 'a.com',
+      matchUser: 'sales',
+      targetAddresses: ['a@x.com', 'b@x.com'],
+      prefix: false,
+      catchall: false,
+    });
+    await vi.waitFor(() => expect(lastFrame() ?? '').toContain('Created routing rule on a.com'));
+  });
+
+  it('deletes a rule via d + confirm', async () => {
+    const r = rec();
+    const { stdin, lastFrame } = render(<Dashboard workspace={makeWs(r)} profiles={profiles} />);
+    await gotoRouting(stdin);
+    stdin.write('d'); // delete selected rule (id 7)
+    await sleep();
+    expect(lastFrame() ?? '').toContain('Delete routing rule 7');
+    stdin.write('y'); // confirm
+    await sleep(100);
+    expect(r.routingDelete).toEqual([{ routingRuleId: 7 }]);
+    await vi.waitFor(() => expect(lastFrame() ?? '').toContain('Deleted rule 7'));
   });
 });

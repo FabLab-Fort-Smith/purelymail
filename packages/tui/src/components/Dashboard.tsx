@@ -2,10 +2,19 @@ import { useEffect, useState, type ReactElement } from 'react';
 import { Box, Text, useApp, useInput } from 'ink';
 import type { Profile, PurelymailWorkspace } from '@fablabfortsmith/purelymail-core';
 import { fetchTab, TABS, type Tab, type TableModel } from '../data.js';
-import { createUser, deleteUser, modifyUser, type NewUserForm } from '../mutations.js';
+import {
+  createRouting,
+  createUser,
+  deleteRouting,
+  deleteUser,
+  modifyUser,
+  type NewRoutingForm,
+  type NewUserForm,
+} from '../mutations.js';
 import { Table } from './Table.js';
 import { CreateUserForm } from './forms/CreateUserForm.js';
 import { EditUserForm, type EditUserFormValues } from './forms/EditUserForm.js';
+import { CreateRoutingForm } from './forms/CreateRoutingForm.js';
 import { ConfirmPrompt } from './forms/ConfirmPrompt.js';
 
 /** Props for the {@link Dashboard}. */
@@ -17,12 +26,25 @@ export interface DashboardProps {
 /** Tabs where a row can be selected for row-scoped actions. */
 const SELECTABLE: ReadonlySet<Tab> = new Set<Tab>(['users', 'routing']);
 
-type Mode = 'browse' | 'create-user' | 'edit-user' | 'confirm-delete-user';
+type Mode =
+  | 'browse'
+  | 'create-user'
+  | 'edit-user'
+  | 'confirm-delete-user'
+  | 'create-routing'
+  | 'confirm-delete-routing';
 
 /** The user a row-scoped action targets. */
 interface UserTarget {
   readonly userName: string;
   readonly profileName: string;
+}
+
+/** The routing rule a row-scoped action targets. */
+interface RoutingTarget {
+  readonly id: number;
+  readonly profileName: string;
+  readonly label: string;
 }
 
 /**
@@ -45,6 +67,7 @@ export function Dashboard({ workspace, profiles }: DashboardProps): ReactElement
   const [mode, setMode] = useState<Mode>('browse');
   const [feedback, setFeedback] = useState<string | null>(null);
   const [target, setTarget] = useState<UserTarget | null>(null);
+  const [routingTarget, setRoutingTarget] = useState<RoutingTarget | null>(null);
 
   const rows = model?.rows.length ?? 0;
   const clamped = rows === 0 ? 0 : Math.min(selected, rows - 1);
@@ -144,6 +167,49 @@ export function Dashboard({ workspace, profiles }: DashboardProps): ReactElement
     return userName !== '' && profileName !== '' ? { userName, profileName } : null;
   };
 
+  const targetSelectedRouting = (): RoutingTarget | null => {
+    const row = model?.rows[clamped];
+    const id = Number(row?.['id'] ?? '');
+    const profileName = row?.['profile'] ?? '';
+    if (!Number.isInteger(id) || profileName === '') {
+      return null;
+    }
+    return { id, profileName, label: `${row?.['domain'] ?? ''}/${row?.['match'] ?? ''}` };
+  };
+
+  const handleCreateRouting = (form: NewRoutingForm): void => {
+    setMode('browse');
+    const account = profiles[0];
+    if (!account) {
+      setFeedback('No account to create in.');
+      return;
+    }
+    setFeedback(`Creating routing rule on ${form.domain}…`);
+    createRouting(workspace.client(account), form)
+      .then(() => {
+        setFeedback(`Created routing rule on ${form.domain}`);
+        refresh();
+      })
+      .catch(fail);
+  };
+
+  const handleDeleteRouting = (): void => {
+    setMode('browse');
+    const client = routingTarget ? clientFor(routingTarget.profileName) : null;
+    if (!routingTarget || !client) {
+      setFeedback('No account for the selected rule.');
+      return;
+    }
+    const { id, label } = routingTarget;
+    setFeedback(`Deleting rule ${id} (${label})…`);
+    deleteRouting(client, id)
+      .then(() => {
+        setFeedback(`Deleted rule ${id}`);
+        refresh();
+      })
+      .catch(fail);
+  };
+
   useInput((input, key) => {
     if (mode !== 'browse') {
       return; // the active form owns input
@@ -177,6 +243,16 @@ export function Dashboard({ workspace, profiles }: DashboardProps): ReactElement
         setFeedback(null);
         setMode('confirm-delete-user');
       }
+    } else if (input === 'n' && tab === 'routing') {
+      setFeedback(null);
+      setMode('create-routing');
+    } else if (input === 'd' && tab === 'routing') {
+      const t = targetSelectedRouting();
+      if (t) {
+        setRoutingTarget(t);
+        setFeedback(null);
+        setMode('confirm-delete-routing');
+      }
     }
   });
 
@@ -184,6 +260,8 @@ export function Dashboard({ workspace, profiles }: DashboardProps): ReactElement
   const domainHint = selectedUsername.includes('@')
     ? selectedUsername.slice(selectedUsername.indexOf('@') + 1)
     : undefined;
+  const selectedRoutingDomain = tab === 'routing' ? (model?.rows[clamped]?.['domain'] ?? '') : '';
+  const routingDomainHint = selectedRoutingDomain !== '' ? selectedRoutingDomain : undefined;
 
   return (
     <Box flexDirection="column" padding={1}>
@@ -217,6 +295,18 @@ export function Dashboard({ workspace, profiles }: DashboardProps): ReactElement
             onConfirm={handleDeleteUser}
             onCancel={() => setMode('browse')}
           />
+        ) : mode === 'create-routing' ? (
+          <CreateRoutingForm
+            onSubmit={handleCreateRouting}
+            onCancel={() => setMode('browse')}
+            {...(routingDomainHint !== undefined ? { domainHint: routingDomainHint } : {})}
+          />
+        ) : mode === 'confirm-delete-routing' && routingTarget ? (
+          <ConfirmPrompt
+            message={`Delete routing rule ${routingTarget.id} (${routingTarget.label})? This cannot be undone.`}
+            onConfirm={handleDeleteRouting}
+            onCancel={() => setMode('browse')}
+          />
         ) : loading ? (
           <Text dimColor>Loading {tab}…</Text>
         ) : error ? (
@@ -247,7 +337,8 @@ export function Dashboard({ workspace, profiles }: DashboardProps): ReactElement
       <Box marginTop={1}>
         <Text dimColor>
           [tab/←→] view {SELECTABLE.has(tab) ? '[↑↓] select ' : ''}
-          {tab === 'users' ? '[n]ew [e]dit [d]el ' : ''}[r] refresh [q] quit
+          {tab === 'users' ? '[n]ew [e]dit [d]el ' : ''}
+          {tab === 'routing' ? '[n]ew [d]el ' : ''}[r] refresh [q] quit
         </Text>
       </Box>
     </Box>
