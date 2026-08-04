@@ -2,7 +2,21 @@ import { useEffect, useState, type ReactElement } from 'react';
 import { Box, Text, useApp, useInput } from 'ink';
 import type { Profile, PurelymailWorkspace } from '@fablabfortsmith/purelymail-core';
 import { fetchTab, TABS, type Tab, type TableModel } from '../data.js';
+import {
+  createRouting,
+  createUser,
+  deleteRouting,
+  deleteUser,
+  modifyUser,
+  type NewRoutingForm,
+  type NewUserForm,
+} from '../mutations.js';
 import { Table } from './Table.js';
+import { CreateUserForm } from './forms/CreateUserForm.js';
+import { EditUserForm, type EditUserFormValues } from './forms/EditUserForm.js';
+import { CreateRoutingForm } from './forms/CreateRoutingForm.js';
+import { ConfirmPrompt } from './forms/ConfirmPrompt.js';
+import { SelectField } from './forms/SelectField.js';
 
 /** Props for the {@link Dashboard}. */
 export interface DashboardProps {
@@ -10,10 +24,37 @@ export interface DashboardProps {
   readonly profiles: readonly Profile[];
 }
 
+/** Tabs where a row can be selected for row-scoped actions. */
+const SELECTABLE: ReadonlySet<Tab> = new Set<Tab>(['users', 'routing']);
+
+type Mode =
+  | 'browse'
+  | 'create-user'
+  | 'edit-user'
+  | 'confirm-delete-user'
+  | 'create-routing'
+  | 'confirm-delete-routing'
+  | 'pick-account';
+
+/** The user a row-scoped action targets. */
+interface UserTarget {
+  readonly userName: string;
+  readonly profileName: string;
+}
+
+/** The routing rule a row-scoped action targets. */
+interface RoutingTarget {
+  readonly id: number;
+  readonly profileName: string;
+  readonly label: string;
+}
+
 /**
- * Read-first multi-org dashboard: a tabbed, aggregated view (domains, users,
- * routing, credit) across all selected accounts. Keys: `tab`/arrows switch
- * view, `r` refreshes, `q`/Ctrl-C quits.
+ * Multi-org dashboard with interactive management. A tabbed, aggregated view
+ * (domains, users, routing, credit) across accounts; on the users/routing tabs
+ * ↑/↓ selects a row for row-scoped actions. Keys: `tab`/←→ switch view, ↑/↓
+ * select, `n` new, `e` edit user, `d` delete (confirmed), `r` refresh,
+ * `q`/Ctrl-C quit. Creates on a multi-account setup prompt for the account.
  *
  * @param props - Workspace + the accounts to show.
  * @returns The dashboard tree.
@@ -25,6 +66,16 @@ export function Dashboard({ workspace, profiles }: DashboardProps): ReactElement
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [nonce, setNonce] = useState(0);
+  const [selected, setSelected] = useState(0);
+  const [mode, setMode] = useState<Mode>('browse');
+  const [feedback, setFeedback] = useState<string | null>(null);
+  const [target, setTarget] = useState<UserTarget | null>(null);
+  const [routingTarget, setRoutingTarget] = useState<RoutingTarget | null>(null);
+  const [createAccount, setCreateAccount] = useState<Profile | null>(null);
+  const [pendingCreate, setPendingCreate] = useState<'user' | 'routing' | null>(null);
+
+  const rows = model?.rows.length ?? 0;
+  const clamped = rows === 0 ? 0 : Math.min(selected, rows - 1);
 
   useEffect(() => {
     let active = true;
@@ -48,17 +99,190 @@ export function Dashboard({ workspace, profiles }: DashboardProps): ReactElement
     };
   }, [workspace, profiles, tab, nonce]);
 
+  const refresh = (): void => setNonce((n) => n + 1);
+  const switchTab = (delta: number): void => {
+    setSelected(0);
+    setTab((t) => TABS[(TABS.indexOf(t) + delta + TABS.length) % TABS.length] ?? t);
+  };
+
+  const clientFor = (profileName: string): ReturnType<PurelymailWorkspace['client']> | null => {
+    const profile = profiles.find((p) => p.name === profileName);
+    return profile ? workspace.client(profile) : null;
+  };
+  const fail = (cause: unknown): void =>
+    setFeedback(`Error: ${cause instanceof Error ? cause.message : String(cause)}`);
+
+  const handleCreateUser = (form: NewUserForm): void => {
+    setMode('browse');
+    const account = createAccount;
+    if (!account) {
+      setFeedback('No account to create in.');
+      return;
+    }
+    setFeedback(`Creating ${form.localPart}@${form.domain}…`);
+    createUser(workspace.client(account), form)
+      .then(() => {
+        setFeedback(`Created ${form.localPart}@${form.domain}`);
+        refresh();
+      })
+      .catch(fail);
+  };
+
+  const handleEditUser = (values: EditUserFormValues): void => {
+    setMode('browse');
+    const client = target ? clientFor(target.profileName) : null;
+    if (!target || !client) {
+      setFeedback('No account for the selected user.');
+      return;
+    }
+    setFeedback(`Updating ${target.userName}…`);
+    modifyUser(client, {
+      userName: target.userName,
+      newLocalPart: values.newLocalPart,
+      newPassword: values.newPassword,
+    })
+      .then(() => {
+        setFeedback(`Updated ${target.userName}`);
+        refresh();
+      })
+      .catch(fail);
+  };
+
+  const handleDeleteUser = (): void => {
+    setMode('browse');
+    const client = target ? clientFor(target.profileName) : null;
+    if (!target || !client) {
+      setFeedback('No account for the selected user.');
+      return;
+    }
+    const name = target.userName;
+    setFeedback(`Deleting ${name}…`);
+    deleteUser(client, name)
+      .then(() => {
+        setFeedback(`Deleted ${name}`);
+        refresh();
+      })
+      .catch(fail);
+  };
+
+  // Start a create flow: pick the account first when there's more than one.
+  const startCreate = (kind: 'user' | 'routing'): void => {
+    setFeedback(null);
+    if (profiles.length <= 1) {
+      setCreateAccount(profiles[0] ?? null);
+      setMode(kind === 'user' ? 'create-user' : 'create-routing');
+    } else {
+      setPendingCreate(kind);
+      setMode('pick-account');
+    }
+  };
+
+  const onPickAccount = (name: string): void => {
+    setCreateAccount(profiles.find((p) => p.name === name) ?? null);
+    setMode(pendingCreate === 'routing' ? 'create-routing' : 'create-user');
+    setPendingCreate(null);
+  };
+
+  const targetSelectedUser = (): UserTarget | null => {
+    const row = model?.rows[clamped];
+    const userName = row?.['username'] ?? '';
+    const profileName = row?.['profile'] ?? '';
+    return userName !== '' && profileName !== '' ? { userName, profileName } : null;
+  };
+
+  const targetSelectedRouting = (): RoutingTarget | null => {
+    const row = model?.rows[clamped];
+    const id = Number(row?.['id'] ?? '');
+    const profileName = row?.['profile'] ?? '';
+    if (!Number.isInteger(id) || profileName === '') {
+      return null;
+    }
+    return { id, profileName, label: `${row?.['domain'] ?? ''}/${row?.['match'] ?? ''}` };
+  };
+
+  const handleCreateRouting = (form: NewRoutingForm): void => {
+    setMode('browse');
+    const account = createAccount;
+    if (!account) {
+      setFeedback('No account to create in.');
+      return;
+    }
+    setFeedback(`Creating routing rule on ${form.domain}…`);
+    createRouting(workspace.client(account), form)
+      .then(() => {
+        setFeedback(`Created routing rule on ${form.domain}`);
+        refresh();
+      })
+      .catch(fail);
+  };
+
+  const handleDeleteRouting = (): void => {
+    setMode('browse');
+    const client = routingTarget ? clientFor(routingTarget.profileName) : null;
+    if (!routingTarget || !client) {
+      setFeedback('No account for the selected rule.');
+      return;
+    }
+    const { id, label } = routingTarget;
+    setFeedback(`Deleting rule ${id} (${label})…`);
+    deleteRouting(client, id)
+      .then(() => {
+        setFeedback(`Deleted rule ${id}`);
+        refresh();
+      })
+      .catch(fail);
+  };
+
   useInput((input, key) => {
+    if (mode !== 'browse') {
+      return; // the active form owns input
+    }
     if (input === 'q' || (key.ctrl && input === 'c')) {
       exit();
     } else if (input === 'r') {
-      setNonce((n) => n + 1);
+      refresh();
     } else if (key.tab || key.rightArrow) {
-      setTab((t) => TABS[(TABS.indexOf(t) + 1) % TABS.length] ?? t);
+      switchTab(1);
     } else if (key.leftArrow) {
-      setTab((t) => TABS[(TABS.indexOf(t) + TABS.length - 1) % TABS.length] ?? t);
+      switchTab(-1);
+    } else if (key.upArrow) {
+      setSelected((s) => Math.max(0, s - 1));
+    } else if (key.downArrow) {
+      setSelected((s) => (rows === 0 ? 0 : Math.min(rows - 1, s + 1)));
+    } else if (input === 'n' && tab === 'users') {
+      startCreate('user');
+    } else if (input === 'e' && tab === 'users') {
+      const t = targetSelectedUser();
+      if (t) {
+        setTarget(t);
+        setFeedback(null);
+        setMode('edit-user');
+      }
+    } else if (input === 'd' && tab === 'users') {
+      const t = targetSelectedUser();
+      if (t) {
+        setTarget(t);
+        setFeedback(null);
+        setMode('confirm-delete-user');
+      }
+    } else if (input === 'n' && tab === 'routing') {
+      startCreate('routing');
+    } else if (input === 'd' && tab === 'routing') {
+      const t = targetSelectedRouting();
+      if (t) {
+        setRoutingTarget(t);
+        setFeedback(null);
+        setMode('confirm-delete-routing');
+      }
     }
   });
+
+  const selectedUsername = tab === 'users' ? (model?.rows[clamped]?.['username'] ?? '') : '';
+  const domainHint = selectedUsername.includes('@')
+    ? selectedUsername.slice(selectedUsername.indexOf('@') + 1)
+    : undefined;
+  const selectedRoutingDomain = tab === 'routing' ? (model?.rows[clamped]?.['domain'] ?? '') : '';
+  const routingDomainHint = selectedRoutingDomain !== '' ? selectedRoutingDomain : undefined;
 
   return (
     <Box flexDirection="column" padding={1}>
@@ -72,14 +296,55 @@ export function Dashboard({ workspace, profiles }: DashboardProps): ReactElement
           </Text>
         ))}
       </Box>
+
       <Box marginTop={1} flexDirection="column">
-        {loading ? (
+        {mode === 'pick-account' ? (
+          <SelectField
+            title={`Select account for new ${pendingCreate ?? ''}`}
+            options={profiles.map((p) => ({
+              label: p.org ? `${p.name} (${p.org})` : p.name,
+              value: p.name,
+            }))}
+            onSelect={onPickAccount}
+            onCancel={() => setMode('browse')}
+          />
+        ) : mode === 'create-user' ? (
+          <CreateUserForm
+            onSubmit={handleCreateUser}
+            onCancel={() => setMode('browse')}
+            {...(domainHint !== undefined ? { domainHint } : {})}
+          />
+        ) : mode === 'edit-user' && target ? (
+          <EditUserForm
+            userName={target.userName}
+            onSubmit={handleEditUser}
+            onCancel={() => setMode('browse')}
+          />
+        ) : mode === 'confirm-delete-user' && target ? (
+          <ConfirmPrompt
+            message={`Delete ${target.userName}? This cannot be undone.`}
+            onConfirm={handleDeleteUser}
+            onCancel={() => setMode('browse')}
+          />
+        ) : mode === 'create-routing' ? (
+          <CreateRoutingForm
+            onSubmit={handleCreateRouting}
+            onCancel={() => setMode('browse')}
+            {...(routingDomainHint !== undefined ? { domainHint: routingDomainHint } : {})}
+          />
+        ) : mode === 'confirm-delete-routing' && routingTarget ? (
+          <ConfirmPrompt
+            message={`Delete routing rule ${routingTarget.id} (${routingTarget.label})? This cannot be undone.`}
+            onConfirm={handleDeleteRouting}
+            onCancel={() => setMode('browse')}
+          />
+        ) : loading ? (
           <Text dimColor>Loading {tab}…</Text>
         ) : error ? (
           <Text color="red">Error: {error}</Text>
         ) : model ? (
           <Box flexDirection="column">
-            <Table model={model} />
+            <Table model={model} {...(SELECTABLE.has(tab) ? { selectedIndex: clamped } : {})} />
             {model.failures.length > 0 ? (
               <Box flexDirection="column" marginTop={1}>
                 {model.failures.map((f, i) => (
@@ -93,8 +358,19 @@ export function Dashboard({ workspace, profiles }: DashboardProps): ReactElement
           </Box>
         ) : null}
       </Box>
+
+      {feedback ? (
+        <Box marginTop={1}>
+          <Text color={feedback.startsWith('Error') ? 'red' : 'green'}>{feedback}</Text>
+        </Box>
+      ) : null}
+
       <Box marginTop={1}>
-        <Text dimColor>[tab/←→] switch view [r] refresh [q] quit</Text>
+        <Text dimColor>
+          [tab/←→] view {SELECTABLE.has(tab) ? '[↑↓] select ' : ''}
+          {tab === 'users' ? '[n]ew [e]dit [d]el ' : ''}
+          {tab === 'routing' ? '[n]ew [d]el ' : ''}[r] refresh [q] quit
+        </Text>
       </Box>
     </Box>
   );

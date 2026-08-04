@@ -10,12 +10,17 @@ same trust boundary (token via a provider, redaction), and it reuses
 
 ## Status
 
-**Read-first multi-org dashboard.** A tabbed, aggregated view across every
-configured account — **domains** (with per-record MX/SPF/DKIM/DMARC status),
-**users**, **routing** rules, and **credit** — each row tagged with its source
-profile/org, and per-account failures surfaced inline (one bad account never
-blanks the view). Reuses `PurelymailWorkspace` for the aggregation. Interactive
-create/modify/delete flows are a later pass.
+**Multi-org dashboard with interactive management.** A tabbed, aggregated view
+across every configured account — **domains** (with per-record MX/SPF/DKIM/DMARC
+status), **users**, **routing** rules, and **credit** — each row tagged with its
+source profile/org, and per-account failures surfaced inline (one bad account
+never blanks the view). Reuses `PurelymailWorkspace` for the aggregation.
+
+On the **users** and **routing** tabs you can select a row (↑/↓) and manage it,
+acting on that row's own account: create (`n`), edit users (`e`), delete
+(`d`, confirmed). Creating on a multi-account setup first prompts for the target
+account. Mutations go through the same `core` services as the CLI; secrets
+(passwords) are entered masked.
 
 ## Run
 
@@ -29,9 +34,15 @@ token is sourced from its env var or the OS keychain — never stored in config)
 
 ## Keys
 
-| Key            | Action                                   |
-| -------------- | ---------------------------------------- |
-| `tab` / `→`    | next view (domains/users/routing/credit) |
-| `←`            | previous view                            |
-| `r`            | refresh the current view                 |
-| `q` / `Ctrl-C` | quit                                     |
+| Key            | Action                                        |
+| -------------- | --------------------------------------------- |
+| `tab` / `→`    | next view (domains/users/routing/credit)      |
+| `←`            | previous view                                 |
+| `↑` / `↓`      | select a row (users/routing)                  |
+| `n`            | new user (users) / new routing rule (routing) |
+| `e`            | edit selected user                            |
+| `d`            | delete selected user / routing rule (confirm) |
+| `r`            | refresh the current view                      |
+| `q` / `Ctrl-C` | quit                                          |
+
+Inside a form: `enter` advances, `y`/`n` answers flags, `esc` cancels.
