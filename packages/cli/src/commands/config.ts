@@ -10,7 +10,7 @@
  */
 
 import type { Command } from 'commander';
-import type { ProfileEntry } from '../config-file.js';
+import type { ProfileEntry } from '@fablabfortsmith/purelymail-config';
 import type { CliContext } from '../context.js';
 import {
   addProfileEntry,
@@ -22,7 +22,7 @@ import {
 } from '../config-store.js';
 import { CliError, confirm, printJson, printTable } from '../output.js';
 import { createPrompter, type Prompter } from '../prompt.js';
-import { KEYCHAIN_SERVICE, setKeychainSecret } from '../token-resolvers.js';
+import { KEYCHAIN_SERVICE, setKeychainSecret } from '@fablabfortsmith/purelymail-config';
 import { report } from './shared.js';
 
 /** Derive a conventional env-var name from a profile name. */
