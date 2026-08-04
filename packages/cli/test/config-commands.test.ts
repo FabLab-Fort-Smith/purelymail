@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { run } from '../src/program.js';
 import { readConfigData, writeConfigData } from '../src/config-store.js';
-import type { KeyringLoader } from '../src/token-resolvers.js';
+import type { KeyringLoader } from '@fablabfortsmith/purelymail-config';
 import { capture } from './helpers.js';
 
 function scripted(lines: string[]): {

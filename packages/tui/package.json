@@ -50,7 +50,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@fablabfortsmith/purelymail-cli": "workspace:*",
+    "@fablabfortsmith/purelymail-config": "workspace:*",
     "@fablabfortsmith/purelymail-core": "workspace:*",
     "ink": "5.1.0",
     "react": "18.3.1"

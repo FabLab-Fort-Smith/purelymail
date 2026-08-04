@@ -7,13 +7,14 @@ passwords, and account credit — across one or many accounts and organizations.
 > **Unofficial.** Not affiliated with or endorsed by PurelyMail. Use of the
 > PurelyMail API is subject to PurelyMail's terms.
 
-Three packages (pnpm workspace):
+Four packages (pnpm workspace):
 
-| Package                                               | What                                                                                                                                | Install                                    |
-| ----------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ |
-| [`@fablabfortsmith/purelymail-core`](./packages/core) | Framework-free API client + multi-account aggregation. The reuse pickup for other apps (web backends, bots). Depends only on `zod`. | `npm i @fablabfortsmith/purelymail-core`   |
-| [`@fablabfortsmith/purelymail-cli`](./packages/cli)   | Thin `commander` CLI (`purelymail`).                                                                                                | `npm i -g @fablabfortsmith/purelymail-cli` |
-| [`@fablabfortsmith/purelymail-tui`](./packages/tui)   | Ink terminal UI (`purelymail-tui`) — read-first multi-org dashboard.                                                                | `npm i -g @fablabfortsmith/purelymail-tui` |
+| Package                                                   | What                                                                                                                                | Install                                    |
+| --------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ |
+| [`@fablabfortsmith/purelymail-core`](./packages/core)     | Framework-free API client + multi-account aggregation. The reuse pickup for other apps (web backends, bots). Depends only on `zod`. | `npm i @fablabfortsmith/purelymail-core`   |
+| [`@fablabfortsmith/purelymail-config`](./packages/config) | Shared profile/config loader (TOML → registry; env-var / OS-keychain tokens). Used by the CLI and TUI.                              | (transitive)                               |
+| [`@fablabfortsmith/purelymail-cli`](./packages/cli)       | Thin `commander` CLI (`purelymail`).                                                                                                | `npm i -g @fablabfortsmith/purelymail-cli` |
+| [`@fablabfortsmith/purelymail-tui`](./packages/tui)       | Ink terminal UI (`purelymail-tui`) — read-first multi-org dashboard.                                                                | `npm i -g @fablabfortsmith/purelymail-tui` |
 
 ## Quick start (CLI)
 

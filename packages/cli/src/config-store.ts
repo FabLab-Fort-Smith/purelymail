@@ -17,7 +17,7 @@ import {
   profileEntrySchema,
   type ConfigData,
   type ProfileEntry,
-} from './config-file.js';
+} from '@fablabfortsmith/purelymail-config';
 
 /** Read the raw config data at `path`, or an empty config if absent. */
 export function readConfigData(path: string): ConfigData {

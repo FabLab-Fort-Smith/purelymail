@@ -15,10 +15,10 @@ import {
   type Profile,
   type ProfileRegistry,
 } from '@fablabfortsmith/purelymail-core';
-import { loadProfiles, resolveConfigPath } from './config-file.js';
+import { loadProfiles, resolveConfigPath } from '@fablabfortsmith/purelymail-config';
 import { CliError, stdio, type IO } from './output.js';
 import type { PromptIO } from './prompt.js';
-import type { KeyringLoader } from './token-resolvers.js';
+import type { KeyringLoader } from '@fablabfortsmith/purelymail-config';
 
 /** Parsed global CLI options. */
 export interface GlobalOptions {

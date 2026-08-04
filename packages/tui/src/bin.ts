@@ -2,7 +2,7 @@
 import { createElement } from 'react';
 import { render } from 'ink';
 import { PurelymailWorkspace } from '@fablabfortsmith/purelymail-core';
-import { loadProfiles } from '@fablabfortsmith/purelymail-cli';
+import { loadProfiles } from '@fablabfortsmith/purelymail-config';
 import { App } from './app.js';
 
 // Imperative shell: load the same profile config the CLI uses (tokens stay in
