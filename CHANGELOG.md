@@ -6,6 +6,11 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-08-04
+
+Initial release: `core` (API client + multi-account aggregation), `config`
+(shared profile/token loader), `cli` (`purelymail`), and `tui` (`purelymail-tui`).
+
 ### Added
 - **`@fablabfortsmith/purelymail-core`** — framework-free PurelyMail API client:
   - Namespaced services: `domains`, `users`, `routing`, `passwordResets`,
@@ -70,4 +75,5 @@ All notable changes to this project are documented here. The format follows
   **CycloneDX SBOM** (checksum-verified Syft), **signed build-provenance + SBOM
   attestations**, and npm publish **with provenance** (EX-2). SHA-pinned.
 
-[Unreleased]: https://github.com/FabLab-Fort-Smith/purelymail/commits/main
+[Unreleased]: https://github.com/FabLab-Fort-Smith/purelymail/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/FabLab-Fort-Smith/purelymail/releases/tag/v0.1.0
