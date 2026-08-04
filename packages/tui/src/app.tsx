@@ -1,31 +1,31 @@
-import React from 'react';
-import { Box, Text, useApp, useInput } from 'ink';
+import type { ReactElement } from 'react';
+import { Box, Text } from 'ink';
+import type { Profile, PurelymailWorkspace } from '@fablabfortsmith/purelymail-core';
+import { Dashboard } from './components/Dashboard.js';
+
+/** Props for the {@link App} root. */
+export interface AppProps {
+  readonly workspace: PurelymailWorkspace;
+  readonly profiles: readonly Profile[];
+}
 
 /**
- * Root component of the PurelyMail TUI.
+ * Root component: renders the multi-org {@link Dashboard}, or a hint when no
+ * accounts are configured. I/O (config loading, workspace construction) happens
+ * in the imperative shell (`bin.ts`) and is injected here.
  *
- * Phase 1 scaffold: renders a title bar and a placeholder pane, and quits on
- * `q`/Ctrl-C. The read-first multi-org dashboard (profiles → domains/users/
- * routing across accounts, built on {@link PurelymailWorkspace}) lands next.
- *
- * @returns The rendered application tree.
+ * @param props - Workspace + configured accounts.
+ * @returns The application tree.
  */
-export function App(): React.ReactElement {
-  const { exit } = useApp();
-  useInput((input, key) => {
-    if (input === 'q' || (key.ctrl && input === 'c')) {
-      exit();
-    }
-  });
-
-  return (
-    <Box flexDirection="column" padding={1}>
-      <Text bold color="cyan">
-        PurelyMail TUI
-      </Text>
-      <Text dimColor>
-        Multi-org dashboard — coming soon. Press <Text color="yellow">q</Text> to quit.
-      </Text>
-    </Box>
-  );
+export function App({ workspace, profiles }: AppProps): ReactElement {
+  if (profiles.length === 0) {
+    return (
+      <Box padding={1}>
+        <Text color="yellow">
+          No accounts configured. Add one with the CLI (`purelymail init`), then relaunch.
+        </Text>
+      </Box>
+    );
+  }
+  return <Dashboard workspace={workspace} profiles={profiles} />;
 }

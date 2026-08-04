@@ -50,11 +50,13 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@fablabfortsmith/purelymail-cli": "workspace:*",
     "@fablabfortsmith/purelymail-core": "workspace:*",
     "ink": "5.1.0",
     "react": "18.3.1"
   },
   "devDependencies": {
-    "@types/react": "18.3.12"
+    "@types/react": "18.3.12",
+    "ink-testing-library": "4.0.0"
   }
 }

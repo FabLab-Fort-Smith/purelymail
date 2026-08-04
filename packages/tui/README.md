@@ -10,9 +10,12 @@ same trust boundary (token via a provider, redaction), and it reuses
 
 ## Status
 
-**Phase 1 scaffold.** Renders a title bar and quits on `q` / `Ctrl-C`. The
-read-first **multi-org dashboard** — browse profiles/orgs → domains, users,
-routing, and credit across accounts, drill in, refresh — is landing next.
+**Read-first multi-org dashboard.** A tabbed, aggregated view across every
+configured account — **domains** (with per-record MX/SPF/DKIM/DMARC status),
+**users**, **routing** rules, and **credit** — each row tagged with its source
+profile/org, and per-account failures surfaced inline (one bad account never
+blanks the view). Reuses `PurelymailWorkspace` for the aggregation. Interactive
+create/modify/delete flows are a later pass.
 
 ## Run
 
@@ -26,9 +29,9 @@ token is sourced from its env var or the OS keychain — never stored in config)
 
 ## Keys
 
-| Key      | Action |
-| -------- | ------ |
-| `q`      | quit   |
-| `Ctrl-C` | quit   |
-
-More keys arrive with the dashboard.
+| Key            | Action                                   |
+| -------------- | ---------------------------------------- |
+| `tab` / `→`    | next view (domains/users/routing/credit) |
+| `←`            | previous view                            |
+| `r`            | refresh the current view                 |
+| `q` / `Ctrl-C` | quit                                     |
