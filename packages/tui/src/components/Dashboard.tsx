@@ -16,6 +16,7 @@ import { CreateUserForm } from './forms/CreateUserForm.js';
 import { EditUserForm, type EditUserFormValues } from './forms/EditUserForm.js';
 import { CreateRoutingForm } from './forms/CreateRoutingForm.js';
 import { ConfirmPrompt } from './forms/ConfirmPrompt.js';
+import { SelectField } from './forms/SelectField.js';
 
 /** Props for the {@link Dashboard}. */
 export interface DashboardProps {
@@ -32,7 +33,8 @@ type Mode =
   | 'edit-user'
   | 'confirm-delete-user'
   | 'create-routing'
-  | 'confirm-delete-routing';
+  | 'confirm-delete-routing'
+  | 'pick-account';
 
 /** The user a row-scoped action targets. */
 interface UserTarget {
@@ -50,8 +52,9 @@ interface RoutingTarget {
 /**
  * Multi-org dashboard with interactive management. A tabbed, aggregated view
  * (domains, users, routing, credit) across accounts; on the users/routing tabs
- * ↑/↓ selects a row and `n` starts a create flow. Keys: `tab`/←→ switch view,
- * `r` refresh, `n` new (users), `q`/Ctrl-C quit.
+ * ↑/↓ selects a row for row-scoped actions. Keys: `tab`/←→ switch view, ↑/↓
+ * select, `n` new, `e` edit user, `d` delete (confirmed), `r` refresh,
+ * `q`/Ctrl-C quit. Creates on a multi-account setup prompt for the account.
  *
  * @param props - Workspace + the accounts to show.
  * @returns The dashboard tree.
@@ -68,6 +71,8 @@ export function Dashboard({ workspace, profiles }: DashboardProps): ReactElement
   const [feedback, setFeedback] = useState<string | null>(null);
   const [target, setTarget] = useState<UserTarget | null>(null);
   const [routingTarget, setRoutingTarget] = useState<RoutingTarget | null>(null);
+  const [createAccount, setCreateAccount] = useState<Profile | null>(null);
+  const [pendingCreate, setPendingCreate] = useState<'user' | 'routing' | null>(null);
 
   const rows = model?.rows.length ?? 0;
   const clamped = rows === 0 ? 0 : Math.min(selected, rows - 1);
@@ -109,7 +114,7 @@ export function Dashboard({ workspace, profiles }: DashboardProps): ReactElement
 
   const handleCreateUser = (form: NewUserForm): void => {
     setMode('browse');
-    const account = profiles[0];
+    const account = createAccount;
     if (!account) {
       setFeedback('No account to create in.');
       return;
@@ -160,6 +165,24 @@ export function Dashboard({ workspace, profiles }: DashboardProps): ReactElement
       .catch(fail);
   };
 
+  // Start a create flow: pick the account first when there's more than one.
+  const startCreate = (kind: 'user' | 'routing'): void => {
+    setFeedback(null);
+    if (profiles.length <= 1) {
+      setCreateAccount(profiles[0] ?? null);
+      setMode(kind === 'user' ? 'create-user' : 'create-routing');
+    } else {
+      setPendingCreate(kind);
+      setMode('pick-account');
+    }
+  };
+
+  const onPickAccount = (name: string): void => {
+    setCreateAccount(profiles.find((p) => p.name === name) ?? null);
+    setMode(pendingCreate === 'routing' ? 'create-routing' : 'create-user');
+    setPendingCreate(null);
+  };
+
   const targetSelectedUser = (): UserTarget | null => {
     const row = model?.rows[clamped];
     const userName = row?.['username'] ?? '';
@@ -179,7 +202,7 @@ export function Dashboard({ workspace, profiles }: DashboardProps): ReactElement
 
   const handleCreateRouting = (form: NewRoutingForm): void => {
     setMode('browse');
-    const account = profiles[0];
+    const account = createAccount;
     if (!account) {
       setFeedback('No account to create in.');
       return;
@@ -227,8 +250,7 @@ export function Dashboard({ workspace, profiles }: DashboardProps): ReactElement
     } else if (key.downArrow) {
       setSelected((s) => (rows === 0 ? 0 : Math.min(rows - 1, s + 1)));
     } else if (input === 'n' && tab === 'users') {
-      setFeedback(null);
-      setMode('create-user');
+      startCreate('user');
     } else if (input === 'e' && tab === 'users') {
       const t = targetSelectedUser();
       if (t) {
@@ -244,8 +266,7 @@ export function Dashboard({ workspace, profiles }: DashboardProps): ReactElement
         setMode('confirm-delete-user');
       }
     } else if (input === 'n' && tab === 'routing') {
-      setFeedback(null);
-      setMode('create-routing');
+      startCreate('routing');
     } else if (input === 'd' && tab === 'routing') {
       const t = targetSelectedRouting();
       if (t) {
@@ -277,7 +298,17 @@ export function Dashboard({ workspace, profiles }: DashboardProps): ReactElement
       </Box>
 
       <Box marginTop={1} flexDirection="column">
-        {mode === 'create-user' ? (
+        {mode === 'pick-account' ? (
+          <SelectField
+            title={`Select account for new ${pendingCreate ?? ''}`}
+            options={profiles.map((p) => ({
+              label: p.org ? `${p.name} (${p.org})` : p.name,
+              value: p.name,
+            }))}
+            onSelect={onPickAccount}
+            onCancel={() => setMode('browse')}
+          />
+        ) : mode === 'create-user' ? (
           <CreateUserForm
             onSubmit={handleCreateUser}
             onCancel={() => setMode('browse')}

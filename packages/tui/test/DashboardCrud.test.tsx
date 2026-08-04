@@ -186,3 +186,55 @@ describe('Dashboard CRUD — routing', () => {
     await vi.waitFor(() => expect(lastFrame() ?? '').toContain('Deleted rule 7'));
   });
 });
+
+describe('Dashboard CRUD — account picker (multi-account)', () => {
+  const DOWN = String.fromCharCode(27) + '[B';
+
+  it('routes a create to the account chosen in the picker', async () => {
+    const created: { account: string; input: unknown }[] = [];
+    const ws = {
+      listDomains: () => Promise.resolve({ items: [], failures: [] }),
+      listUsers: () =>
+        Promise.resolve({ items: [{ profile: 'a', org: 'x', username: 'u@a.com' }], failures: [] }),
+      listRoutingRules: () => Promise.resolve({ items: [], failures: [] }),
+      checkCredit: () => Promise.resolve({ items: [], failures: [] }),
+      client: (p: { name: string }) => ({
+        users: {
+          create: (input: unknown) => (
+            created.push({ account: p.name, input }),
+            Promise.resolve({})
+          ),
+        },
+      }),
+    } as unknown as PurelymailWorkspace;
+    const multi = [{ name: 'a' } as unknown as Profile, { name: 'b' } as unknown as Profile];
+
+    const { stdin, lastFrame } = render(<Dashboard workspace={ws} profiles={multi} />);
+    await sleep();
+    stdin.write('\t'); // -> users
+    await sleep();
+    stdin.write('n'); // > 1 account -> account picker
+    await sleep();
+    expect(lastFrame() ?? '').toContain('Select account for new user');
+    stdin.write(DOWN); // move to 'b'
+    await sleep();
+    stdin.write('\r'); // choose 'b' -> create form
+    await sleep();
+    stdin.write('newu');
+    await sleep();
+    stdin.write('\r'); // -> domain (prefilled a.com)
+    await sleep();
+    stdin.write('\r'); // accept domain -> password
+    await sleep();
+    stdin.write('pw');
+    await sleep();
+    stdin.write('\r'); // submit
+    await sleep(100);
+
+    expect(created).toHaveLength(1);
+    expect(created[0]).toMatchObject({
+      account: 'b',
+      input: { userName: 'newu', domainName: 'a.com' },
+    });
+  });
+});
