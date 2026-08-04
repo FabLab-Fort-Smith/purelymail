@@ -23,6 +23,7 @@ export default defineConfig({
       exclude: [
         'packages/*/src/**/index.ts', // barrel re-exports only
         'packages/cli/src/bin.ts', // process bootstrap (exercised via e2e later)
+        'packages/tui/src/bin.ts', // Ink render bootstrap (imperative shell)
         // Type-only modules (no executable code) — nothing to cover.
         'packages/core/src/types.ts',
         'packages/core/src/internal.ts',

@@ -34,6 +34,9 @@ All notable changes to this project are documented here. The format follows
     tightened on overwrite), stores keychain tokens via a muted prompt, and for
     the env-var source prints the `export` line without writing the secret.
     Refuses to run in a non-interactive shell (fails closed).
+- **`@fablabfortsmith/purelymail-tui`** — new terminal-UI package (Ink), a third
+  adapter over `core`. Phase 1 scaffold: `purelymail-tui` renders a title bar and
+  quits on `q`/`Ctrl-C`; the read-first multi-org dashboard follows.
 
 ### Testing
 - **Mutation testing (StrykerJS)** wired via `stryker.config.mjs` +
