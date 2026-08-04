@@ -10,7 +10,7 @@ import { configDefaults, defineConfig } from 'vitest/config';
  */
 export default defineConfig({
   test: {
-    include: ['packages/*/test/**/*.test.ts'],
+    include: ['packages/*/test/**/*.test.ts', 'packages/*/test/**/*.test.tsx'],
     // Live-API contract tests are opt-in + secret-gated (EX-4) — never part of
     // the default/CI suite. They run only via `pnpm test:live`.
     exclude: [...configDefaults.exclude, '**/*.live.test.ts'],
@@ -23,6 +23,12 @@ export default defineConfig({
       exclude: [
         'packages/*/src/**/index.ts', // barrel re-exports only
         'packages/cli/src/bin.ts', // process bootstrap (exercised via e2e later)
+        'packages/tui/src/bin.ts', // Ink render bootstrap (imperative shell)
+        // Ink UI components are the imperative shell — validated by render
+        // (ink-testing-library) smoke tests, not line-coverage-gated. The gated
+        // logic lives in the pure data layer (`data.ts`). Fuller component
+        // coverage is tracked as a follow-up.
+        'packages/tui/src/**/*.tsx',
         // Type-only modules (no executable code) — nothing to cover.
         'packages/core/src/types.ts',
         'packages/core/src/internal.ts',

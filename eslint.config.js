@@ -70,7 +70,7 @@ export default tseslint.config(
   },
   // Tests are exempt from the docs mandate and may use loosened typing.
   {
-    files: ['packages/*/test/**/*.ts', '**/*.test.ts'],
+    files: ['packages/*/test/**/*.ts', 'packages/*/test/**/*.tsx', '**/*.test.ts', '**/*.test.tsx'],
     rules: {
       'jsdoc/require-jsdoc': 'off',
       '@typescript-eslint/no-explicit-any': 'off',

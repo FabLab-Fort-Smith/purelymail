@@ -1,18 +1,19 @@
 # purelymail toolkit
 
-Unofficial TypeScript **library + CLI** to manage [PurelyMail](https://purelymail.com)
+Unofficial TypeScript **library, CLI + TUI** to manage [PurelyMail](https://purelymail.com)
 — domains, users/mailboxes, routing rules, password-reset (recovery) methods, app
 passwords, and account credit — across one or many accounts and organizations.
 
 > **Unofficial.** Not affiliated with or endorsed by PurelyMail. Use of the
 > PurelyMail API is subject to PurelyMail's terms.
 
-Two packages (pnpm workspace):
+Three packages (pnpm workspace):
 
 | Package                                               | What                                                                                                                                | Install                                    |
 | ----------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ |
 | [`@fablabfortsmith/purelymail-core`](./packages/core) | Framework-free API client + multi-account aggregation. The reuse pickup for other apps (web backends, bots). Depends only on `zod`. | `npm i @fablabfortsmith/purelymail-core`   |
 | [`@fablabfortsmith/purelymail-cli`](./packages/cli)   | Thin `commander` CLI (`purelymail`).                                                                                                | `npm i -g @fablabfortsmith/purelymail-cli` |
+| [`@fablabfortsmith/purelymail-tui`](./packages/tui)   | Ink terminal UI (`purelymail-tui`) — read-first multi-org dashboard.                                                                | `npm i -g @fablabfortsmith/purelymail-tui` |
 
 ## Quick start (CLI)
 

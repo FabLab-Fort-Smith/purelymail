@@ -34,6 +34,14 @@ All notable changes to this project are documented here. The format follows
     tightened on overwrite), stores keychain tokens via a muted prompt, and for
     the env-var source prints the `export` line without writing the secret.
     Refuses to run in a non-interactive shell (fails closed).
+- **`@fablabfortsmith/purelymail-tui`** — new terminal-UI package (Ink), a third
+  adapter over `core`. Read-first **multi-org dashboard**: a tabbed, aggregated
+  view of domains (with MX/SPF/DKIM/DMARC status), users, routing, and credit
+  across every configured account (reusing `PurelymailWorkspace`), each row
+  tagged with its profile/org and per-account failures surfaced inline. Keys:
+  `tab`/`←→` switch view, `r` refresh, `q` quit. Pure data layer (`data.ts`) is
+  unit-tested; components have an ink-testing-library render smoke. Profiles/
+  tokens load via the CLI's config (token stays in env/keychain).
 
 ### Testing
 - **Mutation testing (StrykerJS)** wired via `stryker.config.mjs` +
