@@ -8,7 +8,20 @@
  *
  * @packageDocumentation
  */
+import { z } from 'zod';
 import type { EmailMessage } from './mailer.js';
+
+const emailSchema = z.email();
+
+/**
+ * Whether a string is a syntactically valid email address.
+ *
+ * @param value - The candidate address.
+ * @returns `true` if it parses as an email address.
+ */
+export function isEmail(value: string): boolean {
+  return emailSchema.safeParse(value).success;
+}
 
 /** Inputs for {@link buildWelcomeEmail}. */
 export interface WelcomeDetails {
@@ -34,6 +47,8 @@ export interface WelcomeDetails {
  * @returns The message, addressed to the recovery email.
  */
 export function buildWelcomeEmail(details: WelcomeDetails): EmailMessage {
+  // Fail closed: never ship a plaintext credential to a malformed recipient.
+  const recoveryEmail = emailSchema.parse(details.recoveryEmail);
   const login = details.loginUrl ?? 'https://purelymail.com';
   const imap = details.imapHost ?? 'imap.purelymail.com';
   const smtp = details.smtpHost ?? 'smtp.purelymail.com';
@@ -55,7 +70,7 @@ export function buildWelcomeEmail(details: WelcomeDetails): EmailMessage {
   ].join('\n');
 
   return {
-    to: details.recoveryEmail,
+    to: recoveryEmail,
     subject: `Your new email account: ${details.email}`,
     text,
   };

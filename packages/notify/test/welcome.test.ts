@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { buildWelcomeEmail } from '../src/welcome.js';
+import { buildWelcomeEmail, isEmail } from '../src/welcome.js';
+
+describe('isEmail', () => {
+  it('accepts valid and rejects malformed addresses', () => {
+    expect(isEmail('rec@x.com')).toBe(true);
+    expect(isEmail('not-an-email')).toBe(false);
+    expect(isEmail('')).toBe(false);
+  });
+});
 
 describe('buildWelcomeEmail', () => {
   it('addresses the recovery email and includes credentials + defaults', () => {
@@ -31,5 +39,11 @@ describe('buildWelcomeEmail', () => {
     expect(m.text).toContain('https://mail.example');
     expect(m.text).toContain('imap.example');
     expect(m.text).toContain('smtp.example');
+  });
+
+  it('throws on a malformed recovery address (fail closed)', () => {
+    expect(() =>
+      buildWelcomeEmail({ email: 'a@b.com', password: 'x', recoveryEmail: 'nope' }),
+    ).toThrow();
   });
 });

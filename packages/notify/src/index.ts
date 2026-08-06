@@ -6,4 +6,4 @@
  */
 export type { EmailMessage, Mailer } from './mailer.js';
 export { SmtpMailer, type SmtpConfig, type SendTransport } from './smtp-mailer.js';
-export { buildWelcomeEmail, type WelcomeDetails } from './welcome.js';
+export { buildWelcomeEmail, isEmail, type WelcomeDetails } from './welcome.js';

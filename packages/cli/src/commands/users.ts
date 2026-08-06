@@ -6,7 +6,7 @@
 
 import type { Command } from 'commander';
 import { generatePassword } from '@fablabfortsmith/purelymail-core';
-import { buildWelcomeEmail } from '@fablabfortsmith/purelymail-notify';
+import { buildWelcomeEmail, isEmail } from '@fablabfortsmith/purelymail-notify';
 import type { CliContext } from '../context.js';
 import { CliError, confirm, printJson, printRecord } from '../output.js';
 import { triState } from './domains.js';
@@ -95,8 +95,8 @@ export function registerUsers(program: Command, ctxFrom: (cmd: Command) => CliCo
             opts.passwordLength !== undefined
               ? Number.parseInt(opts.passwordLength, 10)
               : undefined;
-          if (length !== undefined && (!Number.isInteger(length) || length < 1)) {
-            throw new CliError('--password-length must be a positive integer', 2);
+          if (length !== undefined && (!Number.isInteger(length) || length < 12)) {
+            throw new CliError('--password-length must be an integer >= 12', 2);
           }
           password = generatePassword(length !== undefined ? { length } : {});
           generated = password;
@@ -107,6 +107,9 @@ export function registerUsers(program: Command, ctxFrom: (cmd: Command) => CliCo
         if (opts.notify === true) {
           if (opts.recoveryEmail === undefined) {
             throw new CliError('--notify requires --recovery-email <email>', 2);
+          }
+          if (!isEmail(opts.recoveryEmail)) {
+            throw new CliError('--recovery-email must be a valid email address', 2);
           }
           if (ctx.notify() === undefined) {
             throw new CliError('--notify requires a [notify] SMTP section in your config file', 2);

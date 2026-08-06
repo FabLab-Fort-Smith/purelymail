@@ -97,8 +97,11 @@ importers:
   packages/notify:
     dependencies:
       nodemailer:
-        specifier: 6.9.16
-        version: 6.9.16
+        specifier: ^9.0.1
+        version: 9.0.4
+      zod:
+        specifier: 4.4.3
+        version: 4.4.3
     devDependencies:
       '@types/nodemailer':
         specifier: 6.4.17
@@ -1927,8 +1930,8 @@ packages:
     resolution: {integrity: sha512-wRNIrw4DmVLKQlbgOMdkMx27Wrpzes2hh5Jtbi2bjPd+4wJstWIqP5A+lscnqbm0xxmT5Bpg8Lec5ItEBwx6BQ==}
     engines: {node: '>=18'}
 
-  nodemailer@6.9.16:
-    resolution: {integrity: sha512-psAuZdTIRN08HKVd/E8ObdV6NO7NTBY3KsC30F7M4H1OnmLCUNaS56FpYxyb26zWLSyYF9Ozch9KYHhHegsiOQ==}
+  nodemailer@9.0.4:
+    resolution: {integrity: sha512-LmJNRVRtfSCULxcZpy0Cpg4WWenlUZ9+zbmTO+S7v9wD6XreYLjXRFtDjtV/4F0HT5p1GyZfA0Ux/myxHb18CQ==}
     engines: {node: '>=6.0.0'}
 
   npm-run-path@6.0.0:
@@ -4170,7 +4173,7 @@ snapshots:
 
   node-releases@2.0.51: {}
 
-  nodemailer@6.9.16: {}
+  nodemailer@9.0.4: {}
 
   npm-run-path@6.0.0:
     dependencies:

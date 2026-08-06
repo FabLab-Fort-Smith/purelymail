@@ -258,6 +258,30 @@ describe('users', () => {
     expect(created).toHaveLength(0);
   });
 
+  it('--notify with a malformed --recovery-email fails before creating', async () => {
+    const created: unknown[] = [];
+    const r = await cli(
+      [
+        'users',
+        'create',
+        'x',
+        'acme.com',
+        '-p',
+        'acme',
+        '--generate-password',
+        '--recovery-email',
+        'not-an-email',
+        '--notify',
+      ],
+      {
+        notify: fakeNotify,
+        factory: () => ({ users: { create: async (b: unknown) => void created.push(b) } }),
+      },
+    );
+    expect(r.code).toBe(2);
+    expect(created).toHaveLength(0);
+  });
+
   it('--notify without a [notify] config section fails', async () => {
     const r = await cli(
       [
