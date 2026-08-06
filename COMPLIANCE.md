@@ -127,6 +127,27 @@ and an **expiry** (time-box) — no permanent, silent exceptions.
 - **Exit / expiry:** add an OS matrix smoke test (macOS/Linux/Windows) **before
   v1.0.0** if keychain usage is promoted from optional to recommended.
 
+## Accepted residual risks
+
+### RR-1 — Welcome email carries a temporary mailbox password
+
+- **Rule:** `topic-notifications` ("don't put secrets/PII in email/SMS bodies;
+  prefer a link to the authenticated app"), master §5.
+- **What:** the opt-in `users create --notify` / TUI notify flow emails the new
+  mailbox's **temporary password** to the user's recovery address
+  (`packages/notify/src/welcome.ts`). PurelyMail exposes no reset-link API, so a
+  link-based onboarding isn't available; the password is the deliverable.
+- **Compensating controls:** opt-in only (`--notify`); sent to the **recovery**
+  address, never the new mailbox; recovery address is **format-validated and
+  fails closed** before the credential is built (CLI pre-create check +
+  `buildWelcomeEmail` re-validates); outward send is **confirmed** unless
+  `--yes`; **plain-text only** (no HTML-injection surface); the body includes a
+  "change this password as soon as possible" instruction; the SMTP transport is
+  TLS and the password is never logged. `nodemailer >= 9.0.1` (clears the
+  message-misrouting advisory GHSA-mm7p-fcc7-pg87).
+- **Exit / expiry:** switch to a one-time reset/login link if PurelyMail adds a
+  reset-token API. Re-evaluate at v1.0.0.
+
 ## Coverage-exclusion annotations (in-code)
 
 These are the only places test coverage is deliberately excluded, each annotated

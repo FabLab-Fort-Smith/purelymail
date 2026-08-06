@@ -14,9 +14,13 @@ export {
   resolveConfigPath,
   profileEntrySchema,
   configSchema,
+  notifyConfigSchema,
+  DEFAULT_SMTP_PASSWORD_ENV,
   type ProfileEntry,
   type ConfigData,
   type LoadedProfiles,
+  type NotifyConfigEntry,
+  type ResolvedNotify,
 } from './config-file.js';
 export {
   KeychainTokenProvider,

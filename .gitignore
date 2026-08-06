@@ -18,6 +18,8 @@ coverage/
 config.local.*
 # Local PurelyMail profile store may reference secrets — keep it out of VCS
 purelymail.config.toml
+# …but the committed example (placeholders only) is safe
+!examples/purelymail.config.toml
 
 # Editor / OS
 .DS_Store

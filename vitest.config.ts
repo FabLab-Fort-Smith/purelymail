@@ -61,6 +61,20 @@ export default defineConfig({
           functions: 100,
           statements: 100,
         },
+        // Cryptography — CSPRNG password generation (master §4 critical path).
+        'packages/core/src/password.ts': {
+          lines: 100,
+          branches: 100,
+          functions: 100,
+          statements: 100,
+        },
+        // Welcome-email builder — carries a plaintext credential; keep it exact.
+        'packages/notify/src/welcome.ts': {
+          lines: 100,
+          branches: 100,
+          functions: 100,
+          statements: 100,
+        },
       },
     },
   },

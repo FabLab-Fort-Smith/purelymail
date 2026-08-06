@@ -87,15 +87,64 @@ describe('Dashboard CRUD — users', () => {
     await sleep();
     stdin.write('\r'); // -> domain (prefilled a.com)
     await sleep();
-    stdin.write('\r'); // accept domain -> password
+    stdin.write('\r'); // accept domain -> generate?
+    await sleep();
+    stdin.write('n'); // do not generate -> password
     await sleep();
     stdin.write('secretpw');
     await sleep();
-    stdin.write('\r'); // submit
+    stdin.write('\r'); // submit (no notify configured)
     await sleep(100);
     expect(r.create).toHaveLength(1);
     expect(r.create[0]).toMatchObject({ userName: 'admin', domainName: 'a.com' });
     await vi.waitFor(() => expect(lastFrame() ?? '').toContain('Created admin@a.com'));
+  });
+
+  it('generates a password and emails details when notify is configured', async () => {
+    const r = rec();
+    const sends: { to: string; text: string }[] = [];
+    const notify = {
+      host: 'smtp.x',
+      port: 465,
+      secure: undefined,
+      user: 'admin@d.com',
+      from: undefined,
+      passwordProvider: {
+        getToken: async (): Promise<string> => 'smtp-pw',
+        describe: () => 'env:X',
+      },
+    };
+    const { stdin, lastFrame } = render(
+      <Dashboard
+        workspace={makeWs(r)}
+        profiles={profiles}
+        notify={notify}
+        mailerFactory={() => ({ send: async (m: (typeof sends)[0]) => void sends.push(m) })}
+      />,
+    );
+    await gotoUsers(stdin);
+    stdin.write('n'); // new user
+    await sleep();
+    stdin.write('newbie');
+    await sleep();
+    stdin.write('\r'); // -> domain
+    await sleep();
+    stdin.write('\r'); // accept domain -> generate?
+    await sleep();
+    stdin.write('y'); // generate -> notify?
+    await sleep();
+    stdin.write('y'); // notify -> recovery email
+    await sleep();
+    stdin.write('rec@x.com');
+    await sleep();
+    stdin.write('\r'); // submit
+    await sleep(100);
+    expect(r.create).toHaveLength(1);
+    expect(r.create[0]).toMatchObject({ userName: 'newbie', domainName: 'a.com' });
+    await vi.waitFor(() => expect(sends).toHaveLength(1));
+    expect(sends[0]!.to).toBe('rec@x.com');
+    expect(sends[0]!.text).toContain('newbie@a.com');
+    await vi.waitFor(() => expect(lastFrame() ?? '').toContain('emailed rec@x.com'));
   });
 
   it('edits (rename) via e', async () => {
@@ -224,7 +273,9 @@ describe('Dashboard CRUD — account picker (multi-account)', () => {
     await sleep();
     stdin.write('\r'); // -> domain (prefilled a.com)
     await sleep();
-    stdin.write('\r'); // accept domain -> password
+    stdin.write('\r'); // accept domain -> generate?
+    await sleep();
+    stdin.write('n'); // no generate -> password
     await sleep();
     stdin.write('pw');
     await sleep();

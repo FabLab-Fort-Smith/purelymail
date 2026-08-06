@@ -1,6 +1,6 @@
 {
   "name": "@fablabfortsmith/purelymail-tui",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Unofficial terminal UI (TUI) for PurelyMail multi-account/organization management. Built on @fablabfortsmith/purelymail-core.",
   "type": "module",
   "license": "MIT",
@@ -52,6 +52,7 @@
   "dependencies": {
     "@fablabfortsmith/purelymail-config": "workspace:*",
     "@fablabfortsmith/purelymail-core": "workspace:*",
+    "@fablabfortsmith/purelymail-notify": "workspace:*",
     "ink": "5.1.0",
     "react": "18.3.1"
   },

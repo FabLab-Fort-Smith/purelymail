@@ -4,23 +4,63 @@ import {
   buildCreateRouting,
   buildCreateUser,
   buildModifyUser,
+  buildWelcomeMessage,
   createRouting,
   createUser,
   deleteRouting,
   deleteUser,
   modifyUser,
+  resolveNewUserPassword,
+  type NewUserForm,
 } from '../src/mutations.js';
 
+/** A base create-user form with the new toggles off. */
+function form(overrides: Partial<NewUserForm> = {}): NewUserForm {
+  return {
+    localPart: 'admin',
+    domain: 'a.com',
+    password: 'pw',
+    sendWelcomeEmail: false,
+    generate: false,
+    notify: false,
+    recoveryEmail: '',
+    ...overrides,
+  };
+}
+
 describe('build* (pure form -> core input)', () => {
-  it('buildCreateUser trims and carries the welcome flag', () => {
-    expect(
-      buildCreateUser({
-        localPart: ' admin ',
-        domain: ' a.com ',
-        password: 'pw',
-        sendWelcomeEmail: false,
-      }),
-    ).toEqual({ userName: 'admin', domainName: 'a.com', password: 'pw', sendWelcomeEmail: false });
+  it('buildCreateUser trims, carries the welcome flag, omits blank recovery', () => {
+    expect(buildCreateUser(form({ localPart: ' admin ', domain: ' a.com ' }))).toEqual({
+      userName: 'admin',
+      domainName: 'a.com',
+      password: 'pw',
+      sendWelcomeEmail: false,
+    });
+  });
+
+  it('buildCreateUser carries a recovery email when provided', () => {
+    expect(buildCreateUser(form({ recoveryEmail: ' rec@x.com ' }))).toMatchObject({
+      recoveryEmail: 'rec@x.com',
+    });
+  });
+
+  it('resolveNewUserPassword uses the generator only when generate is set', () => {
+    expect(resolveNewUserPassword(form({ generate: false, password: 'typed' }), () => 'GEN')).toBe(
+      'typed',
+    );
+    expect(resolveNewUserPassword(form({ generate: true }), () => 'GEN')).toBe('GEN');
+    // Real generator yields a strong (>=12) password.
+    expect(resolveNewUserPassword(form({ generate: true })).length).toBeGreaterThanOrEqual(12);
+  });
+
+  it('buildWelcomeMessage addresses the recovery email with the password', () => {
+    const m = buildWelcomeMessage(
+      form({ localPart: 'new', domain: 'd.com', recoveryEmail: 'r@x.com' }),
+      'PW',
+    );
+    expect(m.to).toBe('r@x.com');
+    expect(m.text).toContain('new@d.com');
+    expect(m.text).toContain('PW');
   });
 
   it('buildModifyUser renames keeping the domain, omits blank fields', () => {
@@ -85,12 +125,7 @@ describe('apply* (calls the right service)', () => {
 
   it('routes each mutation to its service method', async () => {
     const { client, calls } = spyClient();
-    await createUser(client, {
-      localPart: 'a',
-      domain: 'a.com',
-      password: 'p',
-      sendWelcomeEmail: true,
-    });
+    await createUser(client, form({ localPart: 'a', password: 'p', sendWelcomeEmail: true }));
     await modifyUser(client, { userName: 'a@a.com', newLocalPart: 'b', newPassword: '' });
     await deleteUser(client, 'a@a.com');
     await createRouting(client, {
