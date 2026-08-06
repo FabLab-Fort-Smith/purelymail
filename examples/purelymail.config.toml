@@ -1,0 +1,31 @@
+# Example PurelyMail toolkit config (non-secret metadata ONLY).
+#
+# Copy to ~/.config/purelymail/config.toml (or $XDG_CONFIG_HOME/purelymail/
+# config.toml), chmod 600, and edit. Tokens are NEVER stored here — each profile
+# names an env var (`tokenEnv`) or opts into the OS keychain (`keychain = true`).
+# The `purelymail init` / `profiles add` wizard writes this file for you.
+
+defaultProfile = "acme"
+
+[[profile]]
+name = "acme"
+org = "Acme Inc"
+tokenEnv = "PURELYMAIL_TOKEN_ACME" # token read from this env var at runtime
+
+[[profile]]
+name = "clientb"
+org = "Client B LLC"
+keychain = true # token read from the OS keychain (needs @napi-rs/keyring)
+# keychainAccount = "clientb"      # optional; defaults to the profile name
+
+# Optional SMTP settings for welcome emails (CLI `users create --notify`, the TUI
+# create form). The password is a SECRET — sourced from an env var or the OS
+# keychain, never stored here.
+[notify]
+host = "smtp.purelymail.com"
+port = 465
+user = "postmaster@acme.com"
+# from = "postmaster@acme.com"             # optional; defaults to `user`
+# secure = true                            # implicit TLS; defaults to true on port 465
+# passwordEnv = "PURELYMAIL_SMTP_PASSWORD" # default env var; or set keychain = true
+# keychain = true                          # read the SMTP password from the OS keychain
