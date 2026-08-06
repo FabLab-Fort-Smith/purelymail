@@ -52,6 +52,7 @@
   "dependencies": {
     "@fablabfortsmith/purelymail-config": "workspace:*",
     "@fablabfortsmith/purelymail-core": "workspace:*",
+    "@fablabfortsmith/purelymail-notify": "workspace:*",
     "commander": "15.0.0",
     "smol-toml": "1.7.1",
     "zod": "4.4.3"

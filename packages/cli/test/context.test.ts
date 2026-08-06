@@ -63,6 +63,22 @@ describe('CliContext client building', () => {
     const outcomes = await ctx.workspace().run(ctx.selectedProfiles(), (c) => c.account.credit());
     expect(outcomes).toHaveLength(3);
   });
+
+  it('builds a default SMTP mailer and exposes injected notify settings', () => {
+    const notify = {
+      host: 'smtp.x',
+      port: 465,
+      secure: undefined,
+      user: 'u',
+      from: undefined,
+      passwordProvider: { getToken: async () => 'pw', describe: () => 'env:X' },
+    };
+    const ctx = new CliContext({ profile: 'acme' }, { registry: reg, notify });
+    expect(ctx.notify()).toBe(notify);
+    // Default factory constructs a real SmtpMailer (no send -> no connection).
+    const mailer = ctx.mailerFor({ host: 'smtp.x', port: 465, user: 'u', password: 'pw' });
+    expect(typeof mailer.send).toBe('function');
+  });
 });
 
 describe('CliContext config loading', () => {

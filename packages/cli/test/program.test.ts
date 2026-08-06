@@ -65,7 +65,13 @@ function respond(name: string, path: string): HttpResponse {
 
 async function cli(
   args: string[],
-  opts?: { reg?: typeof baseReg; factory?: (p: Profile) => unknown; def?: string },
+  opts?: {
+    reg?: typeof baseReg;
+    factory?: (p: Profile) => unknown;
+    def?: string;
+    notify?: unknown;
+    mailer?: unknown;
+  },
 ): Promise<{ code: number; out: string; err: string }> {
   const cap = capture();
   const code = await run(args, {
@@ -73,6 +79,8 @@ async function cli(
     clientFactory: (opts?.factory ?? clientFactory(respond)) as never,
     io: cap.io,
     ...(opts?.def ? { defaultProfile: opts.def } : {}),
+    ...(opts?.notify ? { notify: opts.notify as never } : {}),
+    ...(opts?.mailer ? { mailerFactory: opts.mailer as never } : {}),
   });
   return { code, out: cap.out.join('\n'), err: cap.errs.join('\n') };
 }
@@ -194,6 +202,110 @@ describe('users', () => {
       'abc',
     ]);
     expect(r.code).toBe(2);
+  });
+
+  const fakeNotify = {
+    host: 'smtp.x',
+    port: 465,
+    secure: undefined,
+    user: 'admin@d.com',
+    from: undefined,
+    passwordProvider: { getToken: async (): Promise<string> => 'smtp-pw', describe: () => 'env:X' },
+  };
+
+  it('--notify emails the account details to the recovery address', async () => {
+    const sends: { to: string; subject: string; text: string }[] = [];
+    const r = await cli(
+      [
+        'users',
+        'create',
+        'newbie',
+        'acme.com',
+        '-p',
+        'acme',
+        '--generate-password',
+        '--recovery-email',
+        'rec@x.com',
+        '--notify',
+        '--yes',
+      ],
+      {
+        notify: fakeNotify,
+        mailer: () => ({ send: async (m: (typeof sends)[0]) => void sends.push(m) }),
+      },
+    );
+    expect(r.code).toBe(0);
+    expect(r.out).toContain('Created user newbie@acme.com');
+    expect(r.out).toContain('Sent account details to rec@x.com');
+    expect(sends).toHaveLength(1);
+    expect(sends[0]!.to).toBe('rec@x.com');
+    const pw = r.out.match(/shown once[^)]*\): (\S+)/)?.[1] ?? '';
+    expect(pw).not.toBe('');
+    expect(sends[0]!.text).toContain(pw);
+    expect(sends[0]!.text).toContain('newbie@acme.com');
+  });
+
+  it('--notify without --recovery-email fails before creating', async () => {
+    const created: unknown[] = [];
+    const r = await cli(
+      ['users', 'create', 'x', 'acme.com', '-p', 'acme', '--generate-password', '--notify'],
+      {
+        notify: fakeNotify,
+        factory: () => ({ users: { create: async (b: unknown) => void created.push(b) } }),
+      },
+    );
+    expect(r.code).toBe(2);
+    expect(created).toHaveLength(0);
+  });
+
+  it('--notify without a [notify] config section fails', async () => {
+    const r = await cli(
+      [
+        'users',
+        'create',
+        'x',
+        'acme.com',
+        '-p',
+        'acme',
+        '--generate-password',
+        '--recovery-email',
+        'rec@x.com',
+        '--notify',
+      ],
+      { mailer: () => ({ send: async () => undefined }) },
+    );
+    expect(r.code).toBe(2);
+    expect(r.err).toContain('[notify]');
+  });
+
+  it('--notify send failure warns but the user is still created', async () => {
+    const r = await cli(
+      [
+        'users',
+        'create',
+        'newbie',
+        'acme.com',
+        '-p',
+        'acme',
+        '--generate-password',
+        '--recovery-email',
+        'rec@x.com',
+        '--notify',
+        '--yes',
+      ],
+      {
+        notify: fakeNotify,
+        mailer: () => ({
+          send: async () => {
+            throw new Error('smtp down');
+          },
+        }),
+      },
+    );
+    expect(r.code).toBe(0);
+    expect(r.out).toContain('Created user newbie@acme.com');
+    expect(r.err).toContain('welcome email failed');
+    expect(r.err).toContain('smtp down');
   });
 });
 

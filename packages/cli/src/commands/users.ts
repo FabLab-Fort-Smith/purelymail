@@ -6,6 +6,7 @@
 
 import type { Command } from 'commander';
 import { generatePassword } from '@fablabfortsmith/purelymail-core';
+import { buildWelcomeEmail } from '@fablabfortsmith/purelymail-notify';
 import type { CliContext } from '../context.js';
 import { CliError, confirm, printJson, printRecord } from '../output.js';
 import { triState } from './domains.js';
@@ -60,6 +61,10 @@ export function registerUsers(program: Command, ctxFrom: (cmd: Command) => CliCo
     .option('--recovery-phone <phone>', 'recovery phone number')
     .option('--recovery-phone-description <text>', 'recovery phone description')
     .option('--no-welcome-email', 'do not send a welcome email')
+    .option(
+      '--notify',
+      'email the account details (incl. the password) to --recovery-email via the [notify] SMTP config',
+    )
     .option('--no-search-indexing', 'disable search indexing')
     .option('--no-password-reset', 'disable password reset')
     .action(
@@ -75,6 +80,7 @@ export function registerUsers(program: Command, ctxFrom: (cmd: Command) => CliCo
           recoveryEmailDescription?: string;
           recoveryPhone?: string;
           recoveryPhoneDescription?: string;
+          notify?: boolean;
           welcomeEmail: boolean;
           searchIndexing: boolean;
           passwordReset: boolean;
@@ -97,6 +103,15 @@ export function registerUsers(program: Command, ctxFrom: (cmd: Command) => CliCo
         } else {
           password = await resolveSecret('password', opts.passwordStdin, opts.passwordEnv);
         }
+        // Validate --notify prerequisites before creating anything (fail fast).
+        if (opts.notify === true) {
+          if (opts.recoveryEmail === undefined) {
+            throw new CliError('--notify requires --recovery-email <email>', 2);
+          }
+          if (ctx.notify() === undefined) {
+            throw new CliError('--notify requires a [notify] SMTP section in your config file', 2);
+          }
+        }
         await ctx.singleClient().users.create({
           userName: localPart,
           domainName: domain,
@@ -116,6 +131,37 @@ export function registerUsers(program: Command, ctxFrom: (cmd: Command) => CliCo
         report(ctx, `Created user ${localPart}@${domain}`);
         if (generated !== undefined) {
           ctx.io.out(`Generated password (shown once, store it securely): ${generated}`);
+        }
+        // Outward-facing: email the account details to the recovery address.
+        if (opts.notify === true && opts.recoveryEmail !== undefined) {
+          const recovery = opts.recoveryEmail;
+          const n = ctx.notify();
+          if (n !== undefined && (await confirm(`Send account details to ${recovery}?`, ctx.yes))) {
+            const smtpPassword = await n.passwordProvider.getToken();
+            const mailer = ctx.mailerFor({
+              host: n.host,
+              port: n.port,
+              user: n.user,
+              password: smtpPassword,
+              ...(n.secure !== undefined ? { secure: n.secure } : {}),
+              ...(n.from !== undefined ? { from: n.from } : {}),
+            });
+            const message = buildWelcomeEmail({
+              email: `${localPart}@${domain}`,
+              password,
+              recoveryEmail: recovery,
+            });
+            try {
+              await mailer.send(message);
+              report(ctx, `Sent account details to ${recovery}`);
+            } catch (cause) {
+              ctx.io.err(
+                `warning: user created but the welcome email failed to send: ${
+                  cause instanceof Error ? cause.message : String(cause)
+                }`,
+              );
+            }
+          }
         }
       },
     );

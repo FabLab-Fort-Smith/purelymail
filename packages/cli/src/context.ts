@@ -15,7 +15,12 @@ import {
   type Profile,
   type ProfileRegistry,
 } from '@fablabfortsmith/purelymail-core';
-import { loadProfiles, resolveConfigPath } from '@fablabfortsmith/purelymail-config';
+import {
+  loadProfiles,
+  resolveConfigPath,
+  type ResolvedNotify,
+} from '@fablabfortsmith/purelymail-config';
+import { SmtpMailer, type Mailer, type SmtpConfig } from '@fablabfortsmith/purelymail-notify';
 import { CliError, stdio, type IO } from './output.js';
 import type { PromptIO } from './prompt.js';
 import type { KeyringLoader } from '@fablabfortsmith/purelymail-config';
@@ -60,6 +65,10 @@ export interface ContextDeps {
   readonly isTty?: boolean;
   /** Keyring loader for storing secrets (defaults to the native dep). */
   readonly keyringLoader?: KeyringLoader;
+  /** Pre-resolved notify settings (skips disk loading; tests inject fakes). */
+  readonly notify?: ResolvedNotify;
+  /** Custom mailer builder (e.g. a capturing fake in tests). */
+  readonly mailerFactory?: (config: SmtpConfig) => Mailer;
 }
 
 /** Resolved, selectable CLI context. */
@@ -79,8 +88,10 @@ export class CliContext {
   readonly #output: NodeJS.WritableStream;
   readonly #isTty: boolean;
   readonly #keyringLoader: KeyringLoader | undefined;
+  readonly #mailerFactory: (config: SmtpConfig) => Mailer;
   #registry: ProfileRegistry | undefined;
   #defaultProfile: string | undefined;
+  #notify: ResolvedNotify | undefined;
   #loaded = false;
 
   /**
@@ -98,6 +109,7 @@ export class CliContext {
     this.#output = deps.output ?? process.stdout;
     this.#isTty = deps.isTty ?? Boolean(process.stdin.isTTY);
     this.#keyringLoader = deps.keyringLoader;
+    this.#mailerFactory = deps.mailerFactory ?? ((config) => new SmtpMailer(config));
     this.#clientFactory = deps.clientFactory ?? ((profile) => this.#buildClient(profile));
   }
 
@@ -113,6 +125,7 @@ export class CliContext {
       if (this.#deps.registry) {
         this.#registry = this.#deps.registry;
         this.#defaultProfile = this.#deps.defaultProfile;
+        this.#notify = this.#deps.notify;
       } else {
         const loaded = loadProfiles({
           ...(this.#opts.config !== undefined ? { configPath: this.#opts.config } : {}),
@@ -120,6 +133,7 @@ export class CliContext {
         });
         this.#registry = loaded.registry;
         this.#defaultProfile = loaded.defaultProfile;
+        this.#notify = loaded.notify;
         for (const warning of loaded.warnings) {
           this.io.err(`warning: ${warning}`);
         }
@@ -208,6 +222,27 @@ export class CliContext {
    */
   public env(): Record<string, string | undefined> {
     return this.#env;
+  }
+
+  /**
+   * The resolved `[notify]` SMTP settings, if the config declared them (loaded
+   * lazily with the registry).
+   *
+   * @returns The notify settings, or `undefined` when not configured.
+   */
+  public notify(): ResolvedNotify | undefined {
+    this.registry();
+    return this.#notify;
+  }
+
+  /**
+   * Build a mailer for the given SMTP config (fake-injectable for tests).
+   *
+   * @param config - SMTP connection settings including the resolved password.
+   * @returns A ready mailer.
+   */
+  public mailerFor(config: SmtpConfig): Mailer {
+    return this.#mailerFactory(config);
   }
 
   /**
