@@ -91,6 +91,16 @@ importers:
         specifier: 4.4.3
         version: 4.4.3
 
+  packages/notify:
+    dependencies:
+      nodemailer:
+        specifier: 6.9.16
+        version: 6.9.16
+    devDependencies:
+      '@types/nodemailer':
+        specifier: 6.4.17
+        version: 6.4.17
+
   packages/tui:
     dependencies:
       '@fablabfortsmith/purelymail-config':
@@ -1077,6 +1087,9 @@ packages:
   '@types/node@26.1.2':
     resolution: {integrity: sha512-Vu4a5UFA9rIIFJ7rB/Vaafh9lrCQszopTCx6KjFboXTGQbPNasehVR5TEiithSDGyd1DEiUByggTZsg8jukeIg==}
 
+  '@types/nodemailer@6.4.17':
+    resolution: {integrity: sha512-I9CCaIp6DTldEg7vyUTZi8+9Vo0hi1/T8gv3C89yk1rSAAzoKQ8H8ki/jBYJSFoH/BisgLP8tkZMlQ91CIquww==}
+
   '@types/prop-types@15.7.15':
     resolution: {integrity: sha512-F6bEyamV9jKGAFBEmlQnesRPGOQqS2+Uwi0Em15xenOxHaf2hv6L8YCVn3rPdPJOiJfPiCnLIRyvwVaqMY3MIw==}
 
@@ -1907,6 +1920,10 @@ packages:
   node-releases@2.0.51:
     resolution: {integrity: sha512-wRNIrw4DmVLKQlbgOMdkMx27Wrpzes2hh5Jtbi2bjPd+4wJstWIqP5A+lscnqbm0xxmT5Bpg8Lec5ItEBwx6BQ==}
     engines: {node: '>=18'}
+
+  nodemailer@6.9.16:
+    resolution: {integrity: sha512-psAuZdTIRN08HKVd/E8ObdV6NO7NTBY3KsC30F7M4H1OnmLCUNaS56FpYxyb26zWLSyYF9Ozch9KYHhHegsiOQ==}
+    engines: {node: '>=6.0.0'}
 
   npm-run-path@6.0.0:
     resolution: {integrity: sha512-9qny7Z9DsQU8Ou39ERsPU4OZQlSTP47ShQzuKZ6PRXpYLtIFgl/DEBYEXKlvcEa+9tHVcK8CF81Y2V72qaZhWA==}
@@ -3309,6 +3326,10 @@ snapshots:
     dependencies:
       undici-types: 8.3.0
 
+  '@types/nodemailer@6.4.17':
+    dependencies:
+      '@types/node': 26.1.2
+
   '@types/prop-types@15.7.15': {}
 
   '@types/react@18.3.12':
@@ -4142,6 +4163,8 @@ snapshots:
   natural-compare@1.4.0: {}
 
   node-releases@2.0.51: {}
+
+  nodemailer@6.9.16: {}
 
   npm-run-path@6.0.0:
     dependencies:
