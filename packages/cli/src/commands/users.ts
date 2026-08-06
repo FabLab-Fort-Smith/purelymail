@@ -5,8 +5,9 @@
  */
 
 import type { Command } from 'commander';
+import { generatePassword } from '@fablabfortsmith/purelymail-core';
 import type { CliContext } from '../context.js';
-import { confirm, printJson, printRecord } from '../output.js';
+import { CliError, confirm, printJson, printRecord } from '../output.js';
 import { triState } from './domains.js';
 import { aggregate, emitAggregate, report, resolveSecret } from './shared.js';
 
@@ -47,9 +48,13 @@ export function registerUsers(program: Command, ctxFrom: (cmd: Command) => CliCo
 
   group
     .command('create <localPart> <domain>')
-    .description('Create a user/mailbox (password via --password-stdin or --password-env)')
+    .description(
+      'Create a user/mailbox (password via --password-stdin, --password-env, or --generate-password)',
+    )
     .option('--password-stdin', 'read the password from stdin')
     .option('--password-env <var>', 'read the password from an env var')
+    .option('--generate-password', 'generate a strong password and print it once')
+    .option('--password-length <n>', 'length for --generate-password (default 20, min 12)')
     .option('--recovery-email <email>', 'recovery email address')
     .option('--recovery-email-description <text>', 'recovery email description')
     .option('--recovery-phone <phone>', 'recovery phone number')
@@ -64,6 +69,8 @@ export function registerUsers(program: Command, ctxFrom: (cmd: Command) => CliCo
         opts: {
           passwordStdin?: boolean;
           passwordEnv?: string;
+          generatePassword?: boolean;
+          passwordLength?: string;
           recoveryEmail?: string;
           recoveryEmailDescription?: string;
           recoveryPhone?: string;
@@ -75,7 +82,21 @@ export function registerUsers(program: Command, ctxFrom: (cmd: Command) => CliCo
         cmd: Command,
       ) => {
         const ctx = ctxFrom(cmd);
-        const password = await resolveSecret('password', opts.passwordStdin, opts.passwordEnv);
+        let password: string;
+        let generated: string | undefined;
+        if (opts.generatePassword) {
+          const length =
+            opts.passwordLength !== undefined
+              ? Number.parseInt(opts.passwordLength, 10)
+              : undefined;
+          if (length !== undefined && (!Number.isInteger(length) || length < 1)) {
+            throw new CliError('--password-length must be a positive integer', 2);
+          }
+          password = generatePassword(length !== undefined ? { length } : {});
+          generated = password;
+        } else {
+          password = await resolveSecret('password', opts.passwordStdin, opts.passwordEnv);
+        }
         await ctx.singleClient().users.create({
           userName: localPart,
           domainName: domain,
@@ -93,6 +114,9 @@ export function registerUsers(program: Command, ctxFrom: (cmd: Command) => CliCo
             : {}),
         });
         report(ctx, `Created user ${localPart}@${domain}`);
+        if (generated !== undefined) {
+          ctx.io.out(`Generated password (shown once, store it securely): ${generated}`);
+        }
       },
     );
 

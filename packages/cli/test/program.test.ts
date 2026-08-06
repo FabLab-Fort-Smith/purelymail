@@ -161,6 +161,40 @@ describe('users', () => {
     const r = await cli(['users', 'create', 'admin', 'acme.com', '-p', 'acme']);
     expect(r.code).toBe(2);
   });
+
+  it('generates and prints a password with --generate-password', async () => {
+    const r = await cli([
+      'users',
+      'create',
+      'admin',
+      'acme.com',
+      '-p',
+      'acme',
+      '--generate-password',
+      '--password-length',
+      '24',
+    ]);
+    expect(r.code).toBe(0);
+    expect(r.out).toContain('Created user admin@acme.com');
+    const match = r.out.match(/Generated password \(shown once[^)]*\): (\S+)/);
+    expect(match?.[1]).toBeDefined();
+    expect(match?.[1] ?? '').toHaveLength(24);
+  });
+
+  it('rejects a non-numeric --password-length', async () => {
+    const r = await cli([
+      'users',
+      'create',
+      'admin',
+      'acme.com',
+      '-p',
+      'acme',
+      '--generate-password',
+      '--password-length',
+      'abc',
+    ]);
+    expect(r.code).toBe(2);
+  });
 });
 
 describe('routing', () => {
