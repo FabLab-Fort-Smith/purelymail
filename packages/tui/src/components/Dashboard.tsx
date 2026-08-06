@@ -1,13 +1,17 @@
 import { useEffect, useState, type ReactElement } from 'react';
 import { Box, Text, useApp, useInput } from 'ink';
 import type { Profile, PurelymailWorkspace } from '@fablabfortsmith/purelymail-core';
+import type { ResolvedNotify } from '@fablabfortsmith/purelymail-config';
+import { SmtpMailer, type Mailer, type SmtpConfig } from '@fablabfortsmith/purelymail-notify';
 import { fetchTab, TABS, type Tab, type TableModel } from '../data.js';
 import {
+  buildWelcomeMessage,
   createRouting,
   createUser,
   deleteRouting,
   deleteUser,
   modifyUser,
+  resolveNewUserPassword,
   type NewRoutingForm,
   type NewUserForm,
 } from '../mutations.js';
@@ -22,6 +26,10 @@ import { SelectField } from './forms/SelectField.js';
 export interface DashboardProps {
   readonly workspace: PurelymailWorkspace;
   readonly profiles: readonly Profile[];
+  /** Resolved `[notify]` SMTP settings, enabling the create-user email step. */
+  readonly notify?: ResolvedNotify;
+  /** Mailer builder (injectable for tests; defaults to {@link SmtpMailer}). */
+  readonly mailerFactory?: (config: SmtpConfig) => Mailer;
 }
 
 /** Tabs where a row can be selected for row-scoped actions. */
@@ -59,7 +67,12 @@ interface RoutingTarget {
  * @param props - Workspace + the accounts to show.
  * @returns The dashboard tree.
  */
-export function Dashboard({ workspace, profiles }: DashboardProps): ReactElement {
+export function Dashboard({
+  workspace,
+  profiles,
+  notify,
+  mailerFactory = (config) => new SmtpMailer(config),
+}: DashboardProps): ReactElement {
   const { exit } = useApp();
   const [tab, setTab] = useState<Tab>('domains');
   const [model, setModel] = useState<TableModel | null>(null);
@@ -119,10 +132,33 @@ export function Dashboard({ workspace, profiles }: DashboardProps): ReactElement
       setFeedback('No account to create in.');
       return;
     }
-    setFeedback(`Creating ${form.localPart}@${form.domain}…`);
-    createUser(workspace.client(account), form)
-      .then(() => {
-        setFeedback(`Created ${form.localPart}@${form.domain}`);
+    const password = resolveNewUserPassword(form);
+    const address = `${form.localPart}@${form.domain}`;
+    setFeedback(`Creating ${address}…`);
+    createUser(workspace.client(account), { ...form, password })
+      .then(async () => {
+        let msg = `Created ${address}`;
+        if (form.generate) {
+          msg += ` — password: ${password}`;
+        }
+        if (form.notify && notify && form.recoveryEmail.trim() !== '') {
+          const smtpPassword = await notify.passwordProvider.getToken();
+          const mailer = mailerFactory({
+            host: notify.host,
+            port: notify.port,
+            user: notify.user,
+            password: smtpPassword,
+            ...(notify.secure !== undefined ? { secure: notify.secure } : {}),
+            ...(notify.from !== undefined ? { from: notify.from } : {}),
+          });
+          try {
+            await mailer.send(buildWelcomeMessage(form, password));
+            msg += `; emailed ${form.recoveryEmail.trim()}`;
+          } catch (cause) {
+            msg += `; email failed: ${cause instanceof Error ? cause.message : String(cause)}`;
+          }
+        }
+        setFeedback(msg);
         refresh();
       })
       .catch(fail);
@@ -312,6 +348,7 @@ export function Dashboard({ workspace, profiles }: DashboardProps): ReactElement
           <CreateUserForm
             onSubmit={handleCreateUser}
             onCancel={() => setMode('browse')}
+            notifyConfigured={notify !== undefined}
             {...(domainHint !== undefined ? { domainHint } : {})}
           />
         ) : mode === 'edit-user' && target ? (

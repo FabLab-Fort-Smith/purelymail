@@ -1,6 +1,6 @@
 {
   "name": "@fablabfortsmith/purelymail-cli",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Unofficial command-line interface to manage PurelyMail domains, users/mailboxes, routing, password resets and app passwords — with multi-account/organization support. Built on @fablabfortsmith/purelymail-core.",
   "type": "module",
   "license": "MIT",
@@ -52,6 +52,7 @@
   "dependencies": {
     "@fablabfortsmith/purelymail-config": "workspace:*",
     "@fablabfortsmith/purelymail-core": "workspace:*",
+    "@fablabfortsmith/purelymail-notify": "workspace:*",
     "commander": "15.0.0",
     "smol-toml": "1.7.1",
     "zod": "4.4.3"

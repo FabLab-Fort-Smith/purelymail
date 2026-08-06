@@ -109,3 +109,70 @@ describe('loadProfiles', () => {
     expect(loaded.warnings.join(' ')).toMatch(/chmod 600/);
   });
 });
+
+describe('loadProfiles [notify]', () => {
+  it('resolves SMTP settings; password from the default env var', async () => {
+    const path = writeConfig(
+      'notify-env.toml',
+      [
+        '[[profile]]',
+        'name = "p"',
+        '',
+        '[notify]',
+        'host = "smtp.purelymail.com"',
+        'port = 465',
+        'user = "admin@d.com"',
+      ].join('\n'),
+    );
+    const loaded = loadProfiles({
+      configPath: path,
+      env: { PURELYMAIL_SMTP_PASSWORD: 's3cret' },
+    });
+    expect(loaded.notify).toBeDefined();
+    const n = loaded.notify!;
+    expect(n.host).toBe('smtp.purelymail.com');
+    expect(n.port).toBe(465);
+    expect(n.user).toBe('admin@d.com');
+    expect(n.from).toBeUndefined();
+    expect(n.secure).toBeUndefined();
+    expect(n.passwordProvider.describe()).toBe('env:PURELYMAIL_SMTP_PASSWORD');
+    expect(await n.passwordProvider.getToken()).toBe('s3cret');
+  });
+
+  it('honours from/secure/passwordEnv overrides', async () => {
+    const path = writeConfig(
+      'notify-custom.toml',
+      [
+        '[notify]',
+        'host = "h"',
+        'port = 587',
+        'secure = false',
+        'user = "u"',
+        'from = "noreply@d.com"',
+        'passwordEnv = "MY_SMTP_PW"',
+      ].join('\n'),
+    );
+    const loaded = loadProfiles({ configPath: path, env: { MY_SMTP_PW: 'pw' } });
+    const n = loaded.notify!;
+    expect(n.from).toBe('noreply@d.com');
+    expect(n.secure).toBe(false);
+    expect(n.passwordProvider.describe()).toBe('env:MY_SMTP_PW');
+    expect(await n.passwordProvider.getToken()).toBe('pw');
+  });
+
+  it('uses the keychain for the SMTP password when keychain = true', () => {
+    const path = writeConfig(
+      'notify-kc.toml',
+      ['[notify]', 'host = "h"', 'port = 465', 'user = "admin@d.com"', 'keychain = true'].join(
+        '\n',
+      ),
+    );
+    const loaded = loadProfiles({ configPath: path, env: {} });
+    expect(loaded.notify!.passwordProvider.describe()).toContain('notify:admin@d.com');
+  });
+
+  it('leaves notify undefined when no [notify] section is present', () => {
+    const path = writeConfig('no-notify.toml', ['[[profile]]', 'name = "p"'].join('\n'));
+    expect(loadProfiles({ configPath: path, env: {} }).notify).toBeUndefined();
+  });
+});

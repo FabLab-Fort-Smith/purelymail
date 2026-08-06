@@ -9,6 +9,7 @@
 
 export * from './errors.js';
 export * from './config.js';
+export * from './password.js';
 export * from './retry.js';
 export * from './internal.js';
 

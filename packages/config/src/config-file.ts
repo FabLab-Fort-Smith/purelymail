@@ -37,16 +37,61 @@ export const profileEntrySchema = z
   })
   .strict();
 
+/**
+ * Schema for the `[notify]` section — SMTP settings for sending new-account
+ * welcome emails. The SMTP **password is never stored here**: it is sourced
+ * from an env var (`passwordEnv`, default `PURELYMAIL_SMTP_PASSWORD`) or the OS
+ * keychain (`keychain = true`), same as profile tokens (workflow-secrets, §5).
+ */
+export const notifyConfigSchema = z
+  .object({
+    host: z.string().trim().min(1),
+    port: z.number().int().positive(),
+    secure: z.boolean().optional(),
+    user: z.string().trim().min(1),
+    from: z.string().trim().min(1).optional(),
+    passwordEnv: z.string().trim().min(1).optional(),
+    keychain: z.boolean().optional(),
+    keychainAccount: z.string().trim().min(1).optional(),
+  })
+  .strict();
+
 /** Schema for the whole config file. */
 export const configSchema = z
   .object({
     defaultProfile: z.string().trim().min(1).optional(),
     profile: z.array(profileEntrySchema).optional(),
+    notify: notifyConfigSchema.optional(),
   })
   .strict();
 
 /** A validated `[[profile]]` entry. */
 export type ProfileEntry = z.infer<typeof profileEntrySchema>;
+
+/** A validated `[notify]` section. */
+export type NotifyConfigEntry = z.infer<typeof notifyConfigSchema>;
+
+/** Default env var holding the SMTP password when none is named. */
+export const DEFAULT_SMTP_PASSWORD_ENV = 'PURELYMAIL_SMTP_PASSWORD';
+
+/**
+ * Resolved SMTP notify settings. The `passwordProvider` resolves the secret at
+ * send time (from env/keychain) — the password is never held in the config.
+ */
+export interface ResolvedNotify {
+  /** SMTP host. */
+  readonly host: string;
+  /** SMTP port. */
+  readonly port: number;
+  /** Implicit-TLS flag, if set (defaults to port===465 downstream). */
+  readonly secure: boolean | undefined;
+  /** Auth username / sender mailbox. */
+  readonly user: string;
+  /** From address override, if any. */
+  readonly from: string | undefined;
+  /** Resolves the SMTP password from env/keychain at send time. */
+  readonly passwordProvider: TokenProvider;
+}
 
 /** Validated config-file contents. */
 export type ConfigData = z.infer<typeof configSchema>;
@@ -61,6 +106,8 @@ export interface LoadedProfiles {
   readonly source: string;
   /** Non-fatal warnings to surface (e.g. loose file permissions). */
   readonly warnings: readonly string[];
+  /** Resolved `[notify]` SMTP settings, if the config declared them. */
+  readonly notify: ResolvedNotify | undefined;
 }
 
 /**
@@ -97,6 +144,35 @@ function buildTokenProvider(
     return new EnvTokenProvider({ varName: entry.tokenEnv, env });
   }
   return new EnvTokenProvider({ env });
+}
+
+/** Build the SMTP-password provider for a validated `[notify]` section. */
+function buildPasswordProvider(
+  entry: NotifyConfigEntry,
+  env: Record<string, string | undefined>,
+): TokenProvider {
+  if (entry.keychain === true) {
+    return new KeychainTokenProvider(
+      KEYCHAIN_SERVICE,
+      entry.keychainAccount ?? `notify:${entry.user}`,
+    );
+  }
+  return new EnvTokenProvider({ varName: entry.passwordEnv ?? DEFAULT_SMTP_PASSWORD_ENV, env });
+}
+
+/** Resolve a validated `[notify]` section into runtime SMTP settings. */
+function resolveNotify(
+  entry: NotifyConfigEntry,
+  env: Record<string, string | undefined>,
+): ResolvedNotify {
+  return {
+    host: entry.host,
+    port: entry.port,
+    secure: entry.secure,
+    user: entry.user,
+    from: entry.from,
+    passwordProvider: buildPasswordProvider(entry, env),
+  };
 }
 
 /** Convert a validated entry into a core {@link Profile}. */
@@ -148,6 +224,7 @@ export function loadProfiles(options?: {
       defaultProfile: 'default',
       source: 'defaults',
       warnings,
+      notify: undefined,
     };
   }
 
@@ -180,6 +257,9 @@ export function loadProfiles(options?: {
     throw new PurelymailConfigError(`Invalid config at ${path}: ${issues.join('; ')}`);
   }
 
+  const notify =
+    result.data.notify !== undefined ? resolveNotify(result.data.notify, env) : undefined;
+
   const entries = result.data.profile ?? [];
   if (entries.length === 0) {
     return {
@@ -187,6 +267,7 @@ export function loadProfiles(options?: {
       defaultProfile: result.data.defaultProfile ?? 'default',
       source: path,
       warnings,
+      notify,
     };
   }
 
@@ -196,5 +277,6 @@ export function loadProfiles(options?: {
     defaultProfile: result.data.defaultProfile,
     source: path,
     warnings,
+    notify,
   };
 }

@@ -6,6 +6,38 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-08-06
+
+Adds secure password generation and new-account welcome emails. New fifth
+package `notify` (SMTP mailer + welcome template). All published packages bumped
+to 0.3.0 in lockstep.
+
+### Added
+- **`@fablabfortsmith/purelymail-notify`** (new) — email notifications:
+  - `Mailer` port + `SmtpMailer` (nodemailer) with an injectable transport;
+    `from` defaults to the auth user; implicit TLS defaults on port 465.
+  - `buildWelcomeEmail()` — plain-text (no HTML-injection surface) new-account
+    message addressed to the user's **recovery** address, carrying the mailbox
+    address, temporary password, IMAP/SMTP/login settings, and a
+    change-password nudge.
+- **`@fablabfortsmith/purelymail-core`** — `generatePassword()`: CSPRNG
+  (`node:crypto`) password generator, class-guaranteed (lower/upper/digit/
+  symbol), ambiguous characters excluded, min length 12 (default 20).
+- **`@fablabfortsmith/purelymail-config`** — `[notify]` config section
+  (host/port/secure/user/from). The SMTP **password is never stored in the
+  file**: it resolves from an env var (`passwordEnv`, default
+  `PURELYMAIL_SMTP_PASSWORD`) or the OS keychain (`keychain = true`).
+  `loadProfiles()` returns a resolved `notify` with a `passwordProvider`.
+- **`@fablabfortsmith/purelymail-cli`** — `users create`:
+  - `--generate-password` (+ `--password-length`) prints a strong password once.
+  - `--notify --recovery-email <addr>` emails the account details to the
+    recovery address over the `[notify]` SMTP config. Prerequisites are
+    validated before the user is created; the outward send is confirmed unless
+    `--yes`; a send failure warns but does not fail the create.
+- **`@fablabfortsmith/purelymail-tui`** — the create-user form gains
+  "generate a strong password?" and (when `[notify]` is configured) "email
+  account details to a recovery address?" steps.
+
 ## [0.2.0] - 2026-08-04
 
 Initial published release. (0.1.0 was pre-release and never tagged; the version
@@ -84,5 +116,6 @@ read-first dashboard + interactive users/routing CRUD).
   **CycloneDX SBOM** (checksum-verified Syft), **signed build-provenance + SBOM
   attestations**, and npm publish **with provenance** (EX-2). SHA-pinned.
 
-[Unreleased]: https://github.com/FabLab-Fort-Smith/purelymail/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/FabLab-Fort-Smith/purelymail/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/FabLab-Fort-Smith/purelymail/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/FabLab-Fort-Smith/purelymail/releases/tag/v0.2.0
