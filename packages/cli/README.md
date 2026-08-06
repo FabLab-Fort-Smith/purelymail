@@ -34,6 +34,9 @@ Global options: `--profile <name>`, `--org <name>`, `--all`, `--json`, `--yes`,
 ```bash
 purelymail domains list --all --json
 purelymail users create admin example.com --password-stdin <<<'…'
+purelymail users create admin example.com --generate-password             # prints a strong password once
+purelymail users create admin example.com --generate-password \
+  --notify --recovery-email me@backup.com                                 # emails the details to the recovery address
 purelymail users modify admin@example.com --require-2fa --disable-search-indexing
 purelymail routing create --domain example.com --match-user '' --catchall --target admin@example.com
 purelymail password-reset upsert admin@example.com --type email --target me@backup.com
@@ -47,6 +50,26 @@ See the [repository README](https://github.com/FabLab-Fort-Smith/purelymail#mult
 and [`examples/purelymail.config.toml`](https://github.com/FabLab-Fort-Smith/purelymail/blob/main/examples/purelymail.config.toml).
 Config holds non-secret metadata only; tokens come from env vars or the OS
 keychain (optional `@napi-rs/keyring`).
+
+## Welcome emails (`--notify`)
+
+`users create --generate-password --notify --recovery-email <addr>` emails the
+new mailbox's details (address, password, IMAP/SMTP/login settings) to the
+**recovery** address. It needs a `[notify]` SMTP section in the config:
+
+```toml
+[notify]
+host = "smtp.purelymail.com"
+port = 465
+user = "postmaster@example.com"
+# from = "postmaster@example.com"   # optional; defaults to user
+# passwordEnv = "PURELYMAIL_SMTP_PASSWORD"   # default; or keychain = true
+```
+
+The SMTP password is a **secret** — sourced from `PURELYMAIL_SMTP_PASSWORD` (or
+`passwordEnv`), or the OS keychain (`keychain = true`); never stored in the
+config. The outward send is confirmed unless `--yes`; a send failure warns but
+does not fail the create (the user already exists).
 
 ## Safety
 

@@ -1,6 +1,6 @@
 {
   "name": "@fablabfortsmith/purelymail-config",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Profile/config loading for the PurelyMail toolkit: reads the non-secret TOML config into a core ProfileRegistry with env-var / OS-keychain token providers. Shared by the CLI and TUI.",
   "type": "module",
   "license": "MIT",
