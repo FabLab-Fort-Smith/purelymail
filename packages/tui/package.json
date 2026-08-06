@@ -52,6 +52,7 @@
   "dependencies": {
     "@fablabfortsmith/purelymail-config": "workspace:*",
     "@fablabfortsmith/purelymail-core": "workspace:*",
+    "@fablabfortsmith/purelymail-notify": "workspace:*",
     "ink": "5.1.0",
     "react": "18.3.1"
   },

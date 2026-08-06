@@ -9,10 +9,10 @@ import { App } from './app.js';
 // their env var / keychain — never in config), build a workspace over every
 // account, and mount the Ink app. Fail closed on a bad config.
 try {
-  const { registry } = loadProfiles();
+  const { registry, notify } = loadProfiles();
   const profiles = registry.list();
   const workspace = new PurelymailWorkspace();
-  render(createElement(App, { workspace, profiles }));
+  render(createElement(App, { workspace, profiles, ...(notify ? { notify } : {}) }));
 } catch (cause) {
   process.stderr.write(
     `purelymail-tui: ${cause instanceof Error ? cause.message : String(cause)}\n`,
