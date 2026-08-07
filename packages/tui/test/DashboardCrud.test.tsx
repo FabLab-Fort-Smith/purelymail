@@ -181,6 +181,31 @@ describe('Dashboard CRUD — users', () => {
     await vi.waitFor(() => expect(lastFrame() ?? '').toContain('emailed rec@x.com'));
   });
 
+  it('autofocuses the recovery field when emailing is enabled (no arrow needed)', async () => {
+    const r = rec();
+    const sends: { to: string }[] = [];
+    const { stdin } = render(
+      <Dashboard
+        workspace={makeWs(r)}
+        profiles={profiles}
+        notify={notifyCfg}
+        mailerFactory={() => ({ send: async (m: (typeof sends)[0]) => void sends.push(m) })}
+      />,
+    );
+    await toOptions(stdin, 'newbie');
+    stdin.write(DOWN); // -> email row
+    await sleep();
+    stdin.write(SPACE); // enable emailing -> recovery row appears + AUTOFOCUS
+    await sleep();
+    stdin.write('rec@x.com'); // type immediately — no DOWN to reach the field
+    await sleep();
+    stdin.write('\r'); // confirm (generate default on) -> create + email
+    await sleep(100);
+    expect(r.create).toHaveLength(1);
+    expect(r.create[0]).toMatchObject({ userName: 'newbie', recoveryEmail: 'rec@x.com' });
+    await vi.waitFor(() => expect(sends).toHaveLength(1));
+  });
+
   it('does not store the recovery address when emailing is toggled back off', async () => {
     const r = rec();
     const sends: unknown[] = [];
