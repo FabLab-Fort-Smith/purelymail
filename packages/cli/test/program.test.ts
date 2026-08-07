@@ -302,6 +302,31 @@ describe('users', () => {
     expect(r.err).toContain('[notify]');
   });
 
+  it('--notify without --yes in a non-interactive shell fails before creating', async () => {
+    const created: unknown[] = [];
+    const r = await cli(
+      [
+        'users',
+        'create',
+        'x',
+        'acme.com',
+        '-p',
+        'acme',
+        '--generate-password',
+        '--recovery-email',
+        'rec@x.com',
+        '--notify',
+      ],
+      {
+        notify: fakeNotify,
+        factory: () => ({ users: { create: async (b: unknown) => void created.push(b) } }),
+      },
+    );
+    expect(r.code).toBe(2);
+    expect(r.err).toMatch(/non-interactive shell requires --yes/);
+    expect(created).toHaveLength(0); // never created
+  });
+
   it('--notify send failure warns but the user is still created', async () => {
     const r = await cli(
       [
