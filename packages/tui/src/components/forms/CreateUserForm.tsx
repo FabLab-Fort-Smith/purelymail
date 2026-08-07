@@ -48,6 +48,7 @@ export function CreateUserForm({
   const [domain, setDomain] = useState(domainHint ?? '');
   const [generate, setGenerate] = useState(false);
   const [password, setPassword] = useState('');
+  const [pwError, setPwError] = useState(false);
   const [notify, setNotify] = useState(false);
 
   /** Emit the final form, taking explicit values to avoid stale state. */
@@ -124,15 +125,23 @@ export function CreateUserForm({
       ) : null}
 
       {step === 'password' ? (
-        <TextField
-          label="password"
-          mask
-          onCancel={onCancel}
-          onSubmit={(value) => {
-            setPassword(value);
-            afterPassword(false, value);
-          }}
-        />
+        <Box flexDirection="column">
+          <TextField
+            label="password"
+            mask
+            onCancel={onCancel}
+            onSubmit={(value) => {
+              if (value === '') {
+                setPwError(true);
+                return; // stay on the step; a password is required
+              }
+              setPwError(false);
+              setPassword(value);
+              afterPassword(false, value);
+            }}
+          />
+          {pwError ? <Text color="red">password is required</Text> : null}
+        </Box>
       ) : null}
 
       {step === 'notify' ? (

@@ -38,6 +38,10 @@ describe('build* (pure form -> core input)', () => {
     });
   });
 
+  it('buildCreateUser rejects an empty password (fail fast, not via the API)', () => {
+    expect(() => buildCreateUser(form({ password: '' }))).toThrow(/password is required/i);
+  });
+
   it('buildCreateUser carries a recovery email when provided', () => {
     expect(buildCreateUser(form({ recoveryEmail: ' rec@x.com ' }))).toMatchObject({
       recoveryEmail: 'rec@x.com',
