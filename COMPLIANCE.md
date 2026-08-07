@@ -43,15 +43,27 @@ and an **expiry** (time-box) — no permanent, silent exceptions.
     **conversation resolution** required.
   - All CI `uses:` actions **pinned to commit SHAs** (digests) with the tag in a
     trailing comment.
+- **Review-approver identity:** the required review is satisfied by the
+  **`a2-sdlc-reviewer` GitHub App** (least-privilege: `pull_requests:write`,
+  `contents:read`). Per PR, the independent, read-only `sdlc-reviewer` agent
+  reviews the diff; on an **approve** verdict, `scripts/sdlc-approve.mjs` mints a
+  short-lived App installation token and posts the APPROVE review. The **merge
+  stays a human action** (`workflow-gated-actions`) — the App never merges.
+- **Residual risk (accepted):** this is automation approving the project's own
+  pipeline output. Mitigations: the reviewer is a **separate, read-only,
+  adversarial** agent (distinct context, no write tools), the App is
+  repo-scoped + least-privilege, tokens are short-lived, and a human still
+  performs the merge. Re-evaluate when a second human maintainer joins (then the
+  App can supplement, not substitute, human review).
 - **Remaining sub-items (pre-`npm publish`):**
   1. **Required signed commits** — not yet toggled (the API sub-endpoint was
      unavailable to the automation token); enable via **Settings → Branches →
      `main` → "Require signed commits"**. GitHub signs squash-merges, so this
      only blocks bypassing direct pushes.
   2. **`enforce_admins` is `false`** — a deliberate deviation so the solo
-     maintainer isn't locked out of merging (required review with admin
-     enforcement + no second approver = no merges). Turn on once a second
-     maintainer or an approving bot exists.
+     maintainer isn't locked out of merging. Now that the `a2-sdlc-reviewer`
+     App provides the required approval, this can be flipped **on** once signed
+     commits are enforced (so admins no longer need to bypass to merge).
   3. Set the **`NPM_TOKEN`** repository secret (also tracked under EX-2).
 - **Exit / expiry:** enable required signed commits and flip `enforce_admins`
   **before the first `npm publish`** (with a second approver in place).
