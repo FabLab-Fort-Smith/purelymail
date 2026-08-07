@@ -9,6 +9,8 @@ import { Dashboard } from '../src/components/Dashboard.js';
 
 const profiles = [{ name: 'a' } as unknown as Profile];
 const sleep = (ms = 60): Promise<void> => new Promise((r) => setTimeout(r, ms));
+const DOWN = String.fromCharCode(27) + '[B';
+const SPACE = ' ';
 
 interface Recorder {
   create: unknown[];
@@ -77,48 +79,45 @@ async function gotoRouting(stdin: { write: (s: string) => void }): Promise<void>
 }
 
 describe('Dashboard CRUD — users', () => {
-  it('creates via n', async () => {
-    const r = rec();
-    const { stdin, lastFrame } = render(<Dashboard workspace={makeWs(r)} profiles={profiles} />);
+  /** Drive localPart + domain, landing on the options panel. */
+  async function toOptions(stdin: { write: (s: string) => void }, local: string): Promise<void> {
     await gotoUsers(stdin);
     stdin.write('n');
     await sleep();
-    stdin.write('admin');
+    stdin.write(local);
     await sleep();
     stdin.write('\r'); // -> domain (prefilled a.com)
     await sleep();
-    stdin.write('\r'); // accept domain -> generate?
+    stdin.write('\r'); // accept domain -> options panel
     await sleep();
-    stdin.write('n'); // do not generate -> password
-    await sleep();
-    stdin.write('secretpw');
-    await sleep();
-    stdin.write('\r'); // submit (no notify configured)
+  }
+
+  it('creates via n — auto-generate is the default (Enter accepts)', async () => {
+    const r = rec();
+    const { stdin, lastFrame } = render(<Dashboard workspace={makeWs(r)} profiles={profiles} />);
+    await toOptions(stdin, 'admin');
+    stdin.write('\r'); // options: defaults (generate on, email off) -> create
     await sleep(100);
     expect(r.create).toHaveLength(1);
-    expect(r.create[0]).toMatchObject({ userName: 'admin', domainName: 'a.com' });
+    const created = r.create[0] as { userName: string; password: string };
+    expect(created.userName).toBe('admin');
+    expect(created.password.length).toBeGreaterThanOrEqual(12); // generated
     await vi.waitFor(() => expect(lastFrame() ?? '').toContain('Created admin@a.com'));
   });
 
-  it('rejects an empty password at the create step (no API call)', async () => {
+  it('types a password when generation is toggled off; empty is rejected', async () => {
     const r = rec();
     const { stdin, lastFrame } = render(<Dashboard workspace={makeWs(r)} profiles={profiles} />);
-    await gotoUsers(stdin);
-    stdin.write('n');
+    await toOptions(stdin, 'admin');
+    stdin.write(SPACE); // toggle generate OFF (focus starts on it)
     await sleep();
-    stdin.write('admin');
+    stdin.write('\r'); // confirm options -> password step
     await sleep();
-    stdin.write('\r'); // -> domain
-    await sleep();
-    stdin.write('\r'); // accept domain -> generate?
-    await sleep();
-    stdin.write('n'); // no generate -> password
-    await sleep();
-    stdin.write('\r'); // submit blank -> rejected, stays on step
+    stdin.write('\r'); // submit blank -> rejected
     await sleep();
     expect(r.create).toHaveLength(0);
     expect(lastFrame() ?? '').toContain('password is required');
-    stdin.write('secretpw'); // now type a real one
+    stdin.write('secretpw');
     await sleep();
     stdin.write('\r'); // submit -> creates
     await sleep(100);
@@ -126,7 +125,7 @@ describe('Dashboard CRUD — users', () => {
     expect(r.create[0]).toMatchObject({ userName: 'admin', password: 'secretpw' });
   });
 
-  it('generates a password and emails details when notify is configured', async () => {
+  it('emails details and stores the recovery address on the account', async () => {
     const r = rec();
     const sends: { to: string; text: string }[] = [];
     const notify = {
@@ -148,25 +147,24 @@ describe('Dashboard CRUD — users', () => {
         mailerFactory={() => ({ send: async (m: (typeof sends)[0]) => void sends.push(m) })}
       />,
     );
-    await gotoUsers(stdin);
-    stdin.write('n'); // new user
+    await toOptions(stdin, 'newbie');
+    stdin.write(DOWN); // focus the email checkbox
     await sleep();
-    stdin.write('newbie');
+    stdin.write(SPACE); // enable emailing -> recovery row appears
     await sleep();
-    stdin.write('\r'); // -> domain
+    stdin.write('\r'); // confirm without a recovery -> refused (fail closed)
     await sleep();
-    stdin.write('\r'); // accept domain -> generate?
-    await sleep();
-    stdin.write('y'); // generate -> notify?
-    await sleep();
-    stdin.write('y'); // notify -> recovery email
+    expect(r.create).toHaveLength(0);
+    expect(lastFrame() ?? '').toContain('valid recovery email is required');
+    stdin.write(DOWN); // focus the recovery field
     await sleep();
     stdin.write('rec@x.com');
     await sleep();
-    stdin.write('\r'); // submit
+    stdin.write('\r'); // confirm -> create (generate default on) + email
     await sleep(100);
     expect(r.create).toHaveLength(1);
-    expect(r.create[0]).toMatchObject({ userName: 'newbie', domainName: 'a.com' });
+    // Requirement: the recovery address is stored on the new account.
+    expect(r.create[0]).toMatchObject({ userName: 'newbie', recoveryEmail: 'rec@x.com' });
     await vi.waitFor(() => expect(sends).toHaveLength(1));
     expect(sends[0]!.to).toBe('rec@x.com');
     expect(sends[0]!.text).toContain('newbie@a.com');
@@ -263,8 +261,6 @@ describe('Dashboard CRUD — routing', () => {
 });
 
 describe('Dashboard CRUD — account picker (multi-account)', () => {
-  const DOWN = String.fromCharCode(27) + '[B';
-
   it('routes a create to the account chosen in the picker', async () => {
     const created: { account: string; input: unknown }[] = [];
     const ws = {
@@ -299,13 +295,9 @@ describe('Dashboard CRUD — account picker (multi-account)', () => {
     await sleep();
     stdin.write('\r'); // -> domain (prefilled a.com)
     await sleep();
-    stdin.write('\r'); // accept domain -> generate?
+    stdin.write('\r'); // accept domain -> options panel
     await sleep();
-    stdin.write('n'); // no generate -> password
-    await sleep();
-    stdin.write('pw');
-    await sleep();
-    stdin.write('\r'); // submit
+    stdin.write('\r'); // options defaults (generate on) -> create
     await sleep(100);
 
     expect(created).toHaveLength(1);
