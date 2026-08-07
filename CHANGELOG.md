@@ -6,58 +6,23 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
-### Changed
-
-- **`@fablabfortsmith/purelymail-tui`** — enabling "email account details" in the
-  create-user options panel now **autofocuses the recovery-address field**, so
-  you can type it immediately without pressing ↓.
-
-
-- **`@fablabfortsmith/purelymail-notify`** — the welcome email is now
-  **multipart**: a styled, responsive HTML body plus the plain-text version as
-  fallback (previously plain-text only). Every interpolated value is
-  HTML-escaped, so the richer format adds no injection surface.
-
-
-- **`@fablabfortsmith/purelymail-tui`** — the create-user form now presents a
-  **checkbox options panel** (↑/↓ move, Space toggles, Enter confirms) instead of
-  sequential y/n prompts: **auto-generate a strong password** (on by default) and
-  **email account details**. Enabling emailing reveals a **required, validated
-  recovery address** — the panel refuses to proceed without a valid one (fail
-  closed), and that address is **stored on the new account** as its recovery
-  address (passed to `createUser`).
-
-### Fixed
-
-- **`@fablabfortsmith/purelymail-notify`** — `buildWelcomeEmail` now rejects a
-  non-`http(s)` `loginUrl` (fail closed), so a stray/hostile value
-  (`javascript:`/`data:`) can never become a live `href` in the HTML body
-  (defense in depth; `loginUrl` is operator config).
-- **`@fablabfortsmith/purelymail-tui`** — the create-user options panel no longer
-  stores a recovery address that was typed and then disabled: toggling "email
-  account details" off clears the recovery field, and only a valid address is
-  carried when emailing is on. `buildCreateUser` now validates the recovery
-  address (gate-covered) and rejects a malformed one — fail closed for the value
-  that governs account password reset.
-- **`@fablabfortsmith/purelymail-tui`** — reject an empty password client-side on
-  user create (clear "password is required" message) instead of surfacing the
-  upstream `password: Too small` API error; `buildCreateUser` also throws on an
-  empty password (closes the generate-without-resolve footgun).
-
-## [0.3.0] - 2026-08-06
+## [0.3.0] - 2026-08-07
 
 Adds secure password generation and new-account welcome emails. New fifth
-package `notify` (SMTP mailer + welcome template). All published packages bumped
-to 0.3.0 in lockstep.
+package `notify` (SMTP mailer + welcome template). All published packages are
+released at 0.3.0 in lockstep.
 
 ### Added
+
 - **`@fablabfortsmith/purelymail-notify`** (new) — email notifications:
   - `Mailer` port + `SmtpMailer` (nodemailer) with an injectable transport;
     `from` defaults to the auth user; implicit TLS defaults on port 465.
-  - `buildWelcomeEmail()` — plain-text (no HTML-injection surface) new-account
-    message addressed to the user's **recovery** address, carrying the mailbox
-    address, temporary password, IMAP/SMTP/login settings, and a
-    change-password nudge.
+  - `buildWelcomeEmail()` — a **multipart** new-account message (a styled,
+    responsive HTML body plus a plain-text fallback) addressed to the user's
+    **recovery** address, carrying the mailbox address, temporary password,
+    IMAP/SMTP/login settings, and a change-password nudge. Every interpolated
+    value is HTML-escaped; it fails closed on a malformed recovery address or a
+    non-`http(s)` login URL.
 - **`@fablabfortsmith/purelymail-core`** — `generatePassword()`: CSPRNG
   (`node:crypto`) password generator, class-guaranteed (lower/upper/digit/
   symbol), ambiguous characters excluded, min length 12 (default 20).
@@ -67,14 +32,34 @@ to 0.3.0 in lockstep.
   `PURELYMAIL_SMTP_PASSWORD`) or the OS keychain (`keychain = true`).
   `loadProfiles()` returns a resolved `notify` with a `passwordProvider`.
 - **`@fablabfortsmith/purelymail-cli`** — `users create`:
-  - `--generate-password` (+ `--password-length`) prints a strong password once.
+  - `--generate-password` (+ `--password-length`, min 12) prints a strong
+    password once.
   - `--notify --recovery-email <addr>` emails the account details to the
-    recovery address over the `[notify]` SMTP config. Prerequisites are
-    validated before the user is created; the outward send is confirmed unless
-    `--yes`; a send failure warns but does not fail the create.
-- **`@fablabfortsmith/purelymail-tui`** — the create-user form gains
-  "generate a strong password?" and (when `[notify]` is configured) "email
-  account details to a recovery address?" steps.
+    recovery address over the `[notify]` SMTP config **and stores that address
+    on the new account**. Prerequisites (recovery present + valid, `[notify]`
+    configured, and a way to confirm the send) are validated **before** the user
+    is created; the outward send is confirmed unless `--yes` (required in a
+    non-interactive shell); a send failure warns but does not fail the create.
+- **`@fablabfortsmith/purelymail-tui`** — creating a user opens a **checkbox
+  options panel** (↑/↓ move, Space toggles, Enter confirms): **auto-generate a
+  strong password** (on by default) and **email account details** (shown when
+  `[notify]` is configured). Enabling emailing autofocuses a **required,
+  validated recovery address** that is stored on the new account; a typed
+  password is requested only when generation is off, and an empty password is
+  rejected client-side.
+
+### Security
+
+- The welcome email carries a temporary credential: it is sent only to a
+  validated **recovery** address over TLS and never logged; the HTML body is
+  fully escaped and the login-URL scheme is restricted to `http(s)`
+  (defense in depth). The SMTP password and API token are sourced from env or
+  the OS keychain, never written to the config file.
+
+### Dependencies
+
+- `notify` depends on `nodemailer` `^9.0.1` (no known high-severity advisories)
+  with `@types/nodemailer` `^8.0.1`.
 
 ## [0.2.0] - 2026-08-04
 
