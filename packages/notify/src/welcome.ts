@@ -61,6 +61,11 @@ export function buildWelcomeEmail(details: WelcomeDetails): EmailMessage {
   // Fail closed: never ship a plaintext credential to a malformed recipient.
   const recoveryEmail = emailSchema.parse(details.recoveryEmail);
   const login = details.loginUrl ?? 'https://purelymail.com';
+  // Fail closed on the login link scheme: only http(s), so a stray/hostile
+  // loginUrl (javascript:/data:) can never become a live href in the HTML body.
+  if (!/^https?:\/\//i.test(login)) {
+    throw new Error('loginUrl must be an http(s) URL.');
+  }
   const imap = details.imapHost ?? 'imap.purelymail.com';
   const smtp = details.smtpHost ?? 'smtp.purelymail.com';
 
