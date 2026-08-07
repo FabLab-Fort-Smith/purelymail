@@ -77,13 +77,13 @@ export function CreateUserOptions({
     } else if (current === 'generate' && input === ' ') {
       setGenerate((g) => !g);
     } else if (current === 'email' && input === ' ') {
-      setEmail((e) => {
-        const next = !e;
-        if (!next) {
-          setRecovery(''); // clear so a re-enable starts blank
-        }
-        return next;
-      });
+      const enabling = !email;
+      setEmail(enabling);
+      if (enabling) {
+        setFocus(rows.length); // recovery row appears at the end — autofocus it
+      } else {
+        setRecovery(''); // clear so a re-enable starts blank
+      }
       setError('');
     } else if (current === 'recovery') {
       if (key.backspace || key.delete) {
