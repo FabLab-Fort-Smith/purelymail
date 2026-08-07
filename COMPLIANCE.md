@@ -41,6 +41,9 @@ and an **expiry** (time-box) — no permanent, silent exceptions.
     commits.
   - **Linear history** required; **force-push and branch deletion disabled**;
     **conversation resolution** required.
+  - **`enforce_admins: true`** (2026-08-07) — the rules apply to admins with no
+    bypass; safe to enable once the App-approval flow was proven (admins no
+    longer need `--admin` to merge).
   - All CI `uses:` actions **pinned to commit SHAs** (digests) with the tag in a
     trailing comment.
 - **Review-approver identity:** the required review is satisfied by the
@@ -62,17 +65,14 @@ and an **expiry** (time-box) — no permanent, silent exceptions.
   performs the merge. Re-evaluate when a second human maintainer joins (then the
   App supplements, not substitutes, human review).
 - **Remaining sub-items (pre-`npm publish`):**
-  1. **Required signed commits** — not yet toggled (the API sub-endpoint was
-     unavailable to the automation token); enable via **Settings → Branches →
-     `main` → "Require signed commits"**. GitHub signs squash-merges, so this
-     only blocks bypassing direct pushes.
-  2. **`enforce_admins` is `false`** — a deliberate deviation so the solo
-     maintainer isn't locked out of merging. Now that the `a2-sdlc-reviewer`
-     App provides the required approval, this can be flipped **on** once signed
-     commits are enforced (so admins no longer need to bypass to merge).
-  3. Set the **`NPM_TOKEN`** repository secret (also tracked under EX-2).
-- **Exit / expiry:** enable required signed commits and flip `enforce_admins`
-  **before the first `npm publish`** (with a second approver in place).
+  1. **Required signed commits** — still off (the `required_signatures` API
+     sub-endpoint 404s for the automation token — it set `enforce_admins` fine,
+     so it's a route/scope quirk, not an access gap); enable via **Settings →
+     Branches → `main` → "Require signed commits"**. GitHub signs squash-merges,
+     so this only blocks bypassing direct pushes.
+  2. Set the **`NPM_TOKEN`** repository secret (also tracked under EX-2).
+- **Exit / expiry:** enable required signed commits (UI toggle) **before the
+  first `npm publish`**. `enforce_admins` is now on.
 
 ### EX-2 — SBOM, provenance & artifact signing — ✅ IMPLEMENTED (2026-08-02)
 
