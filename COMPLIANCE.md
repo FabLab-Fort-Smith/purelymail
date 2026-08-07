@@ -12,20 +12,20 @@ and an **expiry** (time-box) — no permanent, silent exceptions.
 
 ## Definition-of-Done status (master §8)
 
-| Requirement                                               | Status      | Notes                                                          |
-| --------------------------------------------------------- | ----------- | -------------------------------------------------------------- |
-| Language + standard modules, secure-by-default            | ✅ Met      | strict TS/ESM, zod validation, https-only, fail-closed         |
-| Tests: 100% critical / ≥90% line+branch; regression tests | ✅ Met      | enforced per-file in `vitest.config.ts` (279 tests)            |
-| Lint/format/type-check clean                              | ✅ Met      | `pnpm check` green                                             |
-| CI security gates (SAST/SCA/secret/IaC/image)             | ⚠️ Partial  | see EX-1 (repo not yet hosted); config committed               |
-| No secrets committed; sensitive data redacted             | ✅ Met      | token via provider only; client redacts; gitleaks config       |
-| Docs updated (TSDoc + generator)                          | ✅ Met      | eslint enforces TSDoc; typedoc configured                      |
-| Reviewed via PR; security-focused review                  | ⚠️ Deferred | see EX-1                                                       |
-| Deps vetted/pinned; SBOM/provenance for releases          | ✅ Met      | pinned + lockfile; release CI does SBOM+provenance+sign (EX-2) |
-| Generated/third-party code verified                       | ✅ Met      | API surface verified against the official OpenAPI spec         |
-| Threat model (new trust boundary)                         | ✅ Met      | `docs/security/threat-model.md`                                |
-| Mutation testing on critical modules                      | ✅ Met      | StrykerJS 85.56% on critical+core (EX-3); client-graph EX-3b   |
-| E2E / DAST against deployed env                           | 🚫 N/A      | see NA-1 (library+CLI, no deployed service)                    |
+| Requirement                                               | Status      | Notes                                                           |
+| --------------------------------------------------------- | ----------- | --------------------------------------------------------------- |
+| Language + standard modules, secure-by-default            | ✅ Met      | strict TS/ESM, zod validation, https-only, fail-closed          |
+| Tests: 100% critical / ≥90% line+branch; regression tests | ✅ Met      | enforced per-file in `vitest.config.ts` (279 tests)             |
+| Lint/format/type-check clean                              | ✅ Met      | `pnpm check` green                                              |
+| CI security gates (SAST/SCA/secret/IaC/image)             | ⚠️ Partial  | CI enforces on every PR; branch-protection rules pending (EX-1) |
+| No secrets committed; sensitive data redacted             | ✅ Met      | token via provider only; client redacts; gitleaks config        |
+| Docs updated (TSDoc + generator)                          | ✅ Met      | eslint enforces TSDoc; typedoc configured                       |
+| Reviewed via PR; security-focused review                  | ⚠️ Deferred | see EX-1                                                        |
+| Deps vetted/pinned; SBOM/provenance for releases          | ✅ Met      | pinned + lockfile; release CI does SBOM+provenance+sign (EX-2)  |
+| Generated/third-party code verified                       | ✅ Met      | API surface verified against the official OpenAPI spec          |
+| Threat model (new trust boundary)                         | ✅ Met      | `docs/security/threat-model.md`                                 |
+| Mutation testing on critical modules                      | ✅ Met      | StrykerJS 85.56% on critical+core (EX-3); client-graph EX-3b    |
+| E2E / DAST against deployed env                           | 🚫 N/A      | see NA-1 (library+CLI, no deployed service)                     |
 
 ## Open exceptions (time-boxed)
 
