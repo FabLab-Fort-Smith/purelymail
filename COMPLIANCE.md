@@ -12,40 +12,49 @@ and an **expiry** (time-box) — no permanent, silent exceptions.
 
 ## Definition-of-Done status (master §8)
 
-| Requirement                                               | Status      | Notes                                                           |
-| --------------------------------------------------------- | ----------- | --------------------------------------------------------------- |
-| Language + standard modules, secure-by-default            | ✅ Met      | strict TS/ESM, zod validation, https-only, fail-closed          |
-| Tests: 100% critical / ≥90% line+branch; regression tests | ✅ Met      | enforced per-file in `vitest.config.ts` (279 tests)             |
-| Lint/format/type-check clean                              | ✅ Met      | `pnpm check` green                                              |
-| CI security gates (SAST/SCA/secret/IaC/image)             | ⚠️ Partial  | CI enforces on every PR; branch-protection rules pending (EX-1) |
-| No secrets committed; sensitive data redacted             | ✅ Met      | token via provider only; client redacts; gitleaks config        |
-| Docs updated (TSDoc + generator)                          | ✅ Met      | eslint enforces TSDoc; typedoc configured                       |
-| Reviewed via PR; security-focused review                  | ⚠️ Deferred | see EX-1                                                        |
-| Deps vetted/pinned; SBOM/provenance for releases          | ✅ Met      | pinned + lockfile; release CI does SBOM+provenance+sign (EX-2)  |
-| Generated/third-party code verified                       | ✅ Met      | API surface verified against the official OpenAPI spec          |
-| Threat model (new trust boundary)                         | ✅ Met      | `docs/security/threat-model.md`                                 |
-| Mutation testing on critical modules                      | ✅ Met      | StrykerJS 85.56% on critical+core (EX-3); client-graph EX-3b    |
-| E2E / DAST against deployed env                           | 🚫 N/A      | see NA-1 (library+CLI, no deployed service)                     |
+| Requirement                                               | Status     | Notes                                                                       |
+| --------------------------------------------------------- | ---------- | --------------------------------------------------------------------------- |
+| Language + standard modules, secure-by-default            | ✅ Met     | strict TS/ESM, zod validation, https-only, fail-closed                      |
+| Tests: 100% critical / ≥90% line+branch; regression tests | ✅ Met     | enforced per-file in `vitest.config.ts` (279 tests)                         |
+| Lint/format/type-check clean                              | ✅ Met     | `pnpm check` green                                                          |
+| CI security gates (SAST/SCA/secret/IaC/image)             | ⚠️ Partial | required checks enforced on `main` (EX-1); SCA in release.yml pending (#22) |
+| No secrets committed; sensitive data redacted             | ✅ Met     | token via provider only; client redacts; gitleaks config                    |
+| Docs updated (TSDoc + generator)                          | ✅ Met     | eslint enforces TSDoc; typedoc configured                                   |
+| Reviewed via PR; security-focused review                  | ✅ Met     | required via branch protection (1 approval, dismiss-stale); EX-1            |
+| Deps vetted/pinned; SBOM/provenance for releases          | ✅ Met     | pinned + lockfile; release CI does SBOM+provenance+sign (EX-2)              |
+| Generated/third-party code verified                       | ✅ Met     | API surface verified against the official OpenAPI spec                      |
+| Threat model (new trust boundary)                         | ✅ Met     | `docs/security/threat-model.md`                                             |
+| Mutation testing on critical modules                      | ✅ Met     | StrykerJS 85.56% on critical+core (EX-3); client-graph EX-3b                |
+| E2E / DAST against deployed env                           | 🚫 N/A     | see NA-1 (library+CLI, no deployed service)                                 |
 
 ## Open exceptions (time-boxed)
 
-### EX-1 — Git signing, branch protection & mandatory PR review
+### EX-1 — Git signing, branch protection & mandatory PR review — mostly ENFORCED
 
 - **Rule:** `workflow-git`, `workflow-cicd` (protected `main`, signed commits,
   ≥1 approving review).
-- **Why deferred:** the repo is now hosted on GitHub and changes land via PRs
-  (all commits authored with the mandated noreply email), but **branch
-  protection, required signed commits, and required-review enforcement** have not
-  yet been enabled on the host.
-- **Compensating control:** all gate checks (`pnpm check`) pass; the CI workflow
-  (`.github/workflows/ci.yml`) enforces gates on every PR; changes go through
-  PRs with a security-focused review (the `sdlc-reviewer`); commit identity is
-  the mandated noreply email. All CI `uses:` actions are **pinned to commit
-  SHAs** (digests) with the tag in a trailing comment (the SHA-pin sub-item is
-  done; enforced branch protection + signed-commit + review _rules_ remain to be
-  turned on in repo settings).
-- **Exit / expiry:** enable branch protection + required signed commits + review
-  **at repository creation on GitHub, and before the first `npm publish`.**
+- **Enforced (2026-08-07):** branch protection is now active on `main`:
+  - Required **status checks (strict / up-to-date)**: `Build & test (Node 22)`,
+    `Build & test (Node 24)`, `Security gates` — the full `pnpm check` gate plus
+    SCA/secret-scan block every merge.
+  - **Required PR review** — 1 approving review, stale reviews dismissed on new
+    commits.
+  - **Linear history** required; **force-push and branch deletion disabled**;
+    **conversation resolution** required.
+  - All CI `uses:` actions **pinned to commit SHAs** (digests) with the tag in a
+    trailing comment.
+- **Remaining sub-items (pre-`npm publish`):**
+  1. **Required signed commits** — not yet toggled (the API sub-endpoint was
+     unavailable to the automation token); enable via **Settings → Branches →
+     `main` → "Require signed commits"**. GitHub signs squash-merges, so this
+     only blocks bypassing direct pushes.
+  2. **`enforce_admins` is `false`** — a deliberate deviation so the solo
+     maintainer isn't locked out of merging (required review with admin
+     enforcement + no second approver = no merges). Turn on once a second
+     maintainer or an approving bot exists.
+  3. Set the **`NPM_TOKEN`** repository secret (also tracked under EX-2).
+- **Exit / expiry:** enable required signed commits and flip `enforce_admins`
+  **before the first `npm publish`** (with a second approver in place).
 
 ### EX-2 — SBOM, provenance & artifact signing — ✅ IMPLEMENTED (2026-08-02)
 
