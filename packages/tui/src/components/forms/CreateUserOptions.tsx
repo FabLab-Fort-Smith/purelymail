@@ -71,11 +71,19 @@ export function CreateUserOptions({
         setFocus(rows.indexOf('recovery'));
         return;
       }
-      onSubmit({ generate, email, recovery: recovery.trim() });
+      // Only carry a recovery address when emailing is on, so a value typed and
+      // then disabled is never stored on the account.
+      onSubmit({ generate, email, recovery: email ? recovery.trim() : '' });
     } else if (current === 'generate' && input === ' ') {
       setGenerate((g) => !g);
     } else if (current === 'email' && input === ' ') {
-      setEmail((e) => !e);
+      setEmail((e) => {
+        const next = !e;
+        if (!next) {
+          setRecovery(''); // clear so a re-enable starts blank
+        }
+        return next;
+      });
       setError('');
     } else if (current === 'recovery') {
       if (key.backspace || key.delete) {

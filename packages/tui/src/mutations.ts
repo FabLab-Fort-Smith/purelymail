@@ -16,7 +16,7 @@ import {
   type ModifyUserInput,
   type PurelymailClient,
 } from '@fablabfortsmith/purelymail-core';
-import { buildWelcomeEmail, type EmailMessage } from '@fablabfortsmith/purelymail-notify';
+import { buildWelcomeEmail, isEmail, type EmailMessage } from '@fablabfortsmith/purelymail-notify';
 
 /** Raw values collected by the create-user form. */
 export interface NewUserForm {
@@ -87,6 +87,11 @@ export function buildCreateUser(form: NewUserForm): CreateUserInput {
     throw new Error('A password is required to create a user.');
   }
   const recovery = form.recoveryEmail.trim();
+  // Fail closed: a stored recovery address must be a valid email (it governs
+  // password reset). Empty is fine (omitted); malformed is rejected.
+  if (recovery !== '' && !isEmail(recovery)) {
+    throw new Error('The recovery email is not a valid address.');
+  }
   return {
     userName: form.localPart.trim(),
     domainName: form.domain.trim(),

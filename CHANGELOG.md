@@ -18,6 +18,12 @@ All notable changes to this project are documented here. The format follows
 
 ### Fixed
 
+- **`@fablabfortsmith/purelymail-tui`** — the create-user options panel no longer
+  stores a recovery address that was typed and then disabled: toggling "email
+  account details" off clears the recovery field, and only a valid address is
+  carried when emailing is on. `buildCreateUser` now validates the recovery
+  address (gate-covered) and rejects a malformed one — fail closed for the value
+  that governs account password reset.
 - **`@fablabfortsmith/purelymail-tui`** — reject an empty password client-side on
   user create (clear "password is required" message) instead of surfacing the
   upstream `password: Too small` API error; `buildCreateUser` also throws on an
