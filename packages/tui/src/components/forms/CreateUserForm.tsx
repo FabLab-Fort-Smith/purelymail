@@ -2,13 +2,13 @@ import { useState, type ReactElement } from 'react';
 import { Box, Text } from 'ink';
 import type { NewUserForm } from '../../mutations.js';
 import { TextField } from './TextField.js';
-import { YesNoField } from './YesNoField.js';
+import { CreateUserOptions, type CreateUserOptionsValue } from './CreateUserOptions.js';
 
 /** Props for {@link CreateUserForm}. */
 export interface CreateUserFormProps {
   /** Pre-fill the domain (e.g. from the selected account). */
   readonly domainHint?: string;
-  /** Whether a `[notify]` SMTP section is configured (enables the email step). */
+  /** Whether a `[notify]` SMTP section is configured (enables the email option). */
   readonly notifyConfigured?: boolean;
   /** Called with the collected form once all fields are entered. */
   readonly onSubmit: (form: NewUserForm) => void;
@@ -16,7 +16,7 @@ export interface CreateUserFormProps {
   readonly onCancel: () => void;
 }
 
-type Step = 'localPart' | 'domain' | 'generate' | 'password' | 'notify' | 'recovery';
+type Step = 'localPart' | 'domain' | 'options' | 'password';
 
 /** A completed-field summary line. */
 function Done({ label, value }: { readonly label: string; readonly value: string }): ReactElement {
@@ -29,10 +29,11 @@ function Done({ label, value }: { readonly label: string; readonly value: string
 }
 
 /**
- * A stepped form collecting a new user's local part, domain, and password
- * (typed or auto-generated), then optionally emailing the account details to a
- * recovery address. Enter advances, Esc cancels. Welcome email (PurelyMail's
- * own) stays off; the recovery email is our `[notify]` message.
+ * A stepped form collecting a new user's local part and domain, then a checkbox
+ * options panel (auto-generate password, email account details) with a
+ * required, validated recovery address when emailing is on. A typed password is
+ * only requested when auto-generation is off. The recovery address is both the
+ * email destination and stored on the new account.
  *
  * @param props - Domain hint, notify availability, submit/cancel callbacks.
  * @returns The form tree.
@@ -46,36 +47,20 @@ export function CreateUserForm({
   const [step, setStep] = useState<Step>('localPart');
   const [localPart, setLocalPart] = useState('');
   const [domain, setDomain] = useState(domainHint ?? '');
-  const [generate, setGenerate] = useState(false);
-  const [password, setPassword] = useState('');
+  const [options, setOptions] = useState<CreateUserOptionsValue | null>(null);
   const [pwError, setPwError] = useState(false);
-  const [notify, setNotify] = useState(false);
 
-  /** Emit the final form, taking explicit values to avoid stale state. */
-  const submit = (fields: {
-    generate: boolean;
-    password: string;
-    notify: boolean;
-    recoveryEmail: string;
-  }): void => {
+  /** Emit the final form from the collected options + a resolved password. */
+  const submit = (opts: CreateUserOptionsValue, password: string): void => {
     onSubmit({
       localPart,
       domain,
-      password: fields.password,
+      password,
       sendWelcomeEmail: false,
-      generate: fields.generate,
-      notify: fields.notify,
-      recoveryEmail: fields.recoveryEmail,
+      generate: opts.generate,
+      notify: opts.email,
+      recoveryEmail: opts.recovery,
     });
-  };
-
-  /** After the password is settled, either ask about notify or submit. */
-  const afterPassword = (gen: boolean, pw: string): void => {
-    if (notifyConfigured) {
-      setStep('notify');
-    } else {
-      submit({ generate: gen, password: pw, notify: false, recoveryEmail: '' });
-    }
   };
 
   return (
@@ -104,19 +89,19 @@ export function CreateUserForm({
           onCancel={onCancel}
           onSubmit={(value) => {
             setDomain(value.trim());
-            setStep('generate');
+            setStep('options');
           }}
         />
       ) : null}
 
-      {step === 'generate' ? (
-        <YesNoField
-          label="generate a strong password?"
+      {step === 'options' ? (
+        <CreateUserOptions
+          notifyConfigured={notifyConfigured}
           onCancel={onCancel}
           onSubmit={(value) => {
-            setGenerate(value);
-            if (value) {
-              afterPassword(true, '');
+            setOptions(value);
+            if (value.generate) {
+              submit(value, ''); // password resolved (generated) downstream
             } else {
               setStep('password');
             }
@@ -124,7 +109,7 @@ export function CreateUserForm({
         />
       ) : null}
 
-      {step === 'password' ? (
+      {step === 'password' && options !== null ? (
         <Box flexDirection="column">
           <TextField
             label="password"
@@ -136,40 +121,14 @@ export function CreateUserForm({
                 return; // stay on the step; a password is required
               }
               setPwError(false);
-              setPassword(value);
-              afterPassword(false, value);
+              submit(options, value);
             }}
           />
           {pwError ? <Text color="red">password is required</Text> : null}
         </Box>
       ) : null}
 
-      {step === 'notify' ? (
-        <YesNoField
-          label="email account details to a recovery address?"
-          onCancel={onCancel}
-          onSubmit={(value) => {
-            setNotify(value);
-            if (value) {
-              setStep('recovery');
-            } else {
-              submit({ generate, password, notify: false, recoveryEmail: '' });
-            }
-          }}
-        />
-      ) : null}
-
-      {step === 'recovery' ? (
-        <TextField
-          label="recovery email"
-          onCancel={onCancel}
-          onSubmit={(value) => {
-            submit({ generate, password, notify, recoveryEmail: value.trim() });
-          }}
-        />
-      ) : null}
-
-      <Text dimColor>[enter] next [y/n] toggle [esc] cancel</Text>
+      <Text dimColor>[esc] cancel</Text>
     </Box>
   );
 }
