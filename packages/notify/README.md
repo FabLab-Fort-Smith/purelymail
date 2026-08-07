@@ -13,6 +13,10 @@ const mailer = new SmtpMailer({ host, port, user, password }); // password from 
 await mailer.send(buildWelcomeEmail({ email, password, recoveryEmail }));
 ```
 
+The message is **multipart**: a styled HTML body plus a plain-text fallback.
+Every interpolated value (address, password, hosts) is HTML-escaped, so the HTML
+body carries no injection surface.
+
 Security: the welcome message carries the new mailbox's password, so send it to
 the user's **recovery** address (not the new mailbox), over TLS, and never log
 it. The message includes a "change your password on first sign-in" nudge.
