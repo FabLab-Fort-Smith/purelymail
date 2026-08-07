@@ -24,6 +24,10 @@ All notable changes to this project are documented here. The format follows
 
 ### Fixed
 
+- **`@fablabfortsmith/purelymail-notify`** — `buildWelcomeEmail` now rejects a
+  non-`http(s)` `loginUrl` (fail closed), so a stray/hostile value
+  (`javascript:`/`data:`) can never become a live `href` in the HTML body
+  (defense in depth; `loginUrl` is operator config).
 - **`@fablabfortsmith/purelymail-tui`** — the create-user options panel no longer
   stores a recovery address that was typed and then disabled: toggling "email
   account details" off clears the recovery field, and only a valid address is
