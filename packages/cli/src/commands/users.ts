@@ -148,7 +148,12 @@ export function registerUsers(program: Command, ctxFrom: (cmd: Command) => CliCo
         if (opts.notify === true && opts.recoveryEmail !== undefined) {
           const recovery = opts.recoveryEmail;
           const n = ctx.notify();
-          if (n !== undefined && (await confirm(`Send account details to ${recovery}?`, ctx.yes))) {
+          if (
+            n !== undefined &&
+            // Resolve interactivity from the same source as the pre-create guard
+            // (ctx.isInteractive()), so injected prompt I/O is honored uniformly.
+            (await confirm(`Send account details to ${recovery}?`, ctx.yes, ctx.promptIo()))
+          ) {
             const smtpPassword = await n.passwordProvider.getToken();
             const mailer = ctx.mailerFor({
               host: n.host,
