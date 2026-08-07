@@ -29,7 +29,7 @@ and an **expiry** (time-box) — no permanent, silent exceptions.
 
 ## Open exceptions (time-boxed)
 
-### EX-1 — Git signing, branch protection & mandatory PR review — mostly ENFORCED
+### EX-1 — Git signing, branch protection & mandatory PR review — ✅ ENFORCED (2026-08-07)
 
 - **Rule:** `workflow-git`, `workflow-cicd` (protected `main`, signed commits,
   ≥1 approving review).
@@ -44,6 +44,10 @@ and an **expiry** (time-box) — no permanent, silent exceptions.
   - **`enforce_admins: true`** (2026-08-07) — the rules apply to admins with no
     bypass; safe to enable once the App-approval flow was proven (admins no
     longer need `--admin` to merge).
+  - **Require signed commits: true** (2026-08-07) — enabled on the classic
+    branch-protection rule via the UI (the `required_signatures` REST endpoint
+    404s for the automation token). GitHub signs squash-merges, so the
+    review → App-approve → plain-merge flow satisfies it.
   - All CI `uses:` actions **pinned to commit SHAs** (digests) with the tag in a
     trailing comment.
 - **Review-approver identity:** the required review is satisfied by the
@@ -64,15 +68,10 @@ and an **expiry** (time-box) — no permanent, silent exceptions.
   App is repo-scoped; installation tokens are short-lived. A human still
   performs the merge. Re-evaluate when a second human maintainer joins (then the
   App supplements, not substitutes, human review).
-- **Remaining sub-items (pre-`npm publish`):**
-  1. **Required signed commits** — still off (the `required_signatures` API
-     sub-endpoint 404s for the automation token — it set `enforce_admins` fine,
-     so it's a route/scope quirk, not an access gap); enable via **Settings →
-     Branches → `main` → "Require signed commits"**. GitHub signs squash-merges,
-     so this only blocks bypassing direct pushes.
-  2. Set the **`NPM_TOKEN`** repository secret (also tracked under EX-2).
-- **Exit / expiry:** enable required signed commits (UI toggle) **before the
-  first `npm publish`**. `enforce_admins` is now on.
+- **Status:** all EX-1 controls (protected `main`, required review, signed
+  commits, admin enforcement, status checks, linear history) are now enforced —
+  this exception is **closed**. The remaining publish prerequisite, the
+  **`NPM_TOKEN`** repository secret, is tracked under **EX-2** (release/publish).
 
 ### EX-2 — SBOM, provenance & artifact signing — ✅ IMPLEMENTED (2026-08-02)
 
