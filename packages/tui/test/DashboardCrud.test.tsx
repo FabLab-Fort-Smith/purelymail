@@ -10,6 +10,7 @@ import { Dashboard } from '../src/components/Dashboard.js';
 const profiles = [{ name: 'a' } as unknown as Profile];
 const sleep = (ms = 60): Promise<void> => new Promise((r) => setTimeout(r, ms));
 const DOWN = String.fromCharCode(27) + '[B';
+const UP = String.fromCharCode(27) + '[A';
 const SPACE = ' ';
 
 interface Recorder {
@@ -63,6 +64,15 @@ function makeWs(rec: Recorder): PurelymailWorkspace {
 function rec(): Recorder {
   return { create: [], modify: [], del: [], routingCreate: [], routingDelete: [] };
 }
+
+const notifyCfg = {
+  host: 'smtp.x',
+  port: 465,
+  secure: undefined,
+  user: 'admin@d.com',
+  from: undefined,
+  passwordProvider: { getToken: async (): Promise<string> => 'smtp-pw', describe: () => 'env:X' },
+};
 
 async function gotoUsers(stdin: { write: (s: string) => void }): Promise<void> {
   await sleep(); // domains settled
@@ -169,6 +179,102 @@ describe('Dashboard CRUD — users', () => {
     expect(sends[0]!.to).toBe('rec@x.com');
     expect(sends[0]!.text).toContain('newbie@a.com');
     await vi.waitFor(() => expect(lastFrame() ?? '').toContain('emailed rec@x.com'));
+  });
+
+  it('does not store the recovery address when emailing is toggled back off', async () => {
+    const r = rec();
+    const sends: unknown[] = [];
+    const { stdin } = render(
+      <Dashboard
+        workspace={makeWs(r)}
+        profiles={profiles}
+        notify={notifyCfg}
+        mailerFactory={() => ({ send: async (m: unknown) => void sends.push(m) })}
+      />,
+    );
+    await toOptions(stdin, 'newbie');
+    stdin.write(DOWN); // -> email row
+    await sleep();
+    stdin.write(SPACE); // email on -> recovery row appears
+    await sleep();
+    stdin.write(DOWN); // -> recovery field
+    await sleep();
+    stdin.write('rec@x.com');
+    await sleep();
+    stdin.write(UP); // back to email row
+    await sleep();
+    stdin.write(SPACE); // email OFF -> recovery cleared + row hidden
+    await sleep();
+    stdin.write('\r'); // confirm (generate default on)
+    await sleep(100);
+    expect(r.create).toHaveLength(1);
+    expect(r.create[0]).not.toHaveProperty('recoveryEmail'); // not stored
+    expect(sends).toHaveLength(0); // not emailed
+  });
+
+  it('generate-off + email: stores recovery and sends with a typed password', async () => {
+    const r = rec();
+    const sends: { to: string }[] = [];
+    const { stdin } = render(
+      <Dashboard
+        workspace={makeWs(r)}
+        profiles={profiles}
+        notify={notifyCfg}
+        mailerFactory={() => ({ send: async (m: (typeof sends)[0]) => void sends.push(m) })}
+      />,
+    );
+    await toOptions(stdin, 'newbie');
+    stdin.write(SPACE); // generate OFF
+    await sleep();
+    stdin.write(DOWN); // -> email row
+    await sleep();
+    stdin.write(SPACE); // email on
+    await sleep();
+    stdin.write(DOWN); // -> recovery
+    await sleep();
+    stdin.write('rec@x.com');
+    await sleep();
+    stdin.write('\r'); // confirm options -> password step (generate off)
+    await sleep();
+    stdin.write('typedpw');
+    await sleep();
+    stdin.write('\r'); // submit password -> create + email
+    await sleep(100);
+    expect(r.create).toHaveLength(1);
+    expect(r.create[0]).toMatchObject({ recoveryEmail: 'rec@x.com', password: 'typedpw' });
+    await vi.waitFor(() => expect(sends).toHaveLength(1));
+    expect(sends[0]!.to).toBe('rec@x.com');
+  });
+
+  it('rejects a malformed recovery address, then accepts a corrected one', async () => {
+    const r = rec();
+    const { stdin, lastFrame } = render(
+      <Dashboard
+        workspace={makeWs(r)}
+        profiles={profiles}
+        notify={notifyCfg}
+        mailerFactory={() => ({ send: async () => undefined })}
+      />,
+    );
+    await toOptions(stdin, 'newbie');
+    stdin.write(DOWN); // -> email
+    await sleep();
+    stdin.write(SPACE); // email on
+    await sleep();
+    stdin.write(DOWN); // -> recovery
+    await sleep();
+    stdin.write('bad');
+    await sleep();
+    stdin.write('\r'); // confirm with malformed recovery -> refused
+    await sleep();
+    expect(r.create).toHaveLength(0);
+    expect(lastFrame() ?? '').toContain('valid recovery email is required');
+    stdin.write('@x.com'); // -> bad@x.com
+    await sleep();
+    stdin.write('\r'); // confirm (generate default on) -> create
+    await sleep(100);
+    expect(r.create).toHaveLength(1);
+    expect(r.create[0]).toMatchObject({ recoveryEmail: 'bad@x.com' });
   });
 
   it('edits (rename) via e', async () => {
