@@ -8,6 +8,12 @@ All notable changes to this project are documented here. The format follows
 
 ### Changed
 
+- **`@fablabfortsmith/purelymail-notify`** — the welcome email is now
+  **multipart**: a styled, responsive HTML body plus the plain-text version as
+  fallback (previously plain-text only). Every interpolated value is
+  HTML-escaped, so the richer format adds no injection surface.
+
+
 - **`@fablabfortsmith/purelymail-tui`** — the create-user form now presents a
   **checkbox options panel** (↑/↓ move, Space toggles, Enter confirms) instead of
   sequential y/n prompts: **auto-generate a strong password** (on by default) and
