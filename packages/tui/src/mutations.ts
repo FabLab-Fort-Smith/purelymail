@@ -81,6 +81,11 @@ export interface NewRoutingForm {
 
 /** Shape create-user form values into a core {@link CreateUserInput}. */
 export function buildCreateUser(form: NewUserForm): CreateUserInput {
+  // Fail fast client-side rather than round-tripping an empty password to the
+  // API (a caller passing generate=true must pre-resolve via resolveNewUserPassword).
+  if (form.password === '') {
+    throw new Error('A password is required to create a user.');
+  }
   const recovery = form.recoveryEmail.trim();
   return {
     userName: form.localPart.trim(),

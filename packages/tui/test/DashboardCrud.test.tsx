@@ -100,6 +100,32 @@ describe('Dashboard CRUD — users', () => {
     await vi.waitFor(() => expect(lastFrame() ?? '').toContain('Created admin@a.com'));
   });
 
+  it('rejects an empty password at the create step (no API call)', async () => {
+    const r = rec();
+    const { stdin, lastFrame } = render(<Dashboard workspace={makeWs(r)} profiles={profiles} />);
+    await gotoUsers(stdin);
+    stdin.write('n');
+    await sleep();
+    stdin.write('admin');
+    await sleep();
+    stdin.write('\r'); // -> domain
+    await sleep();
+    stdin.write('\r'); // accept domain -> generate?
+    await sleep();
+    stdin.write('n'); // no generate -> password
+    await sleep();
+    stdin.write('\r'); // submit blank -> rejected, stays on step
+    await sleep();
+    expect(r.create).toHaveLength(0);
+    expect(lastFrame() ?? '').toContain('password is required');
+    stdin.write('secretpw'); // now type a real one
+    await sleep();
+    stdin.write('\r'); // submit -> creates
+    await sleep(100);
+    expect(r.create).toHaveLength(1);
+    expect(r.create[0]).toMatchObject({ userName: 'admin', password: 'secretpw' });
+  });
+
   it('generates a password and emails details when notify is configured', async () => {
     const r = rec();
     const sends: { to: string; text: string }[] = [];
