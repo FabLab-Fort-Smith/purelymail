@@ -71,4 +71,15 @@ describe('buildWelcomeEmail', () => {
       buildWelcomeEmail({ email: 'a@b.com', password: 'x', recoveryEmail: 'nope' }),
     ).toThrow();
   });
+
+  it('rejects a non-http(s) loginUrl (fail closed)', () => {
+    expect(() =>
+      buildWelcomeEmail({
+        email: 'a@b.com',
+        password: 'x',
+        recoveryEmail: 'r@c.com',
+        loginUrl: 'javascript:alert(1)',
+      }),
+    ).toThrow(/http\(s\)/i);
+  });
 });
