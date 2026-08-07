@@ -8,6 +8,11 @@ All notable changes to this project are documented here. The format follows
 
 ### Changed
 
+- **`@fablabfortsmith/purelymail-tui`** — enabling "email account details" in the
+  create-user options panel now **autofocuses the recovery-address field**, so
+  you can type it immediately without pressing ↓.
+
+
 - **`@fablabfortsmith/purelymail-notify`** — the welcome email is now
   **multipart**: a styled, responsive HTML body plus the plain-text version as
   fallback (previously plain-text only). Every interpolated value is
