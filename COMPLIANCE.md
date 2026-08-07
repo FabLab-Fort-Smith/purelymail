@@ -15,7 +15,7 @@ and an **expiry** (time-box) — no permanent, silent exceptions.
 | Requirement                                               | Status      | Notes                                                          |
 | --------------------------------------------------------- | ----------- | -------------------------------------------------------------- |
 | Language + standard modules, secure-by-default            | ✅ Met      | strict TS/ESM, zod validation, https-only, fail-closed         |
-| Tests: 100% critical / ≥90% line+branch; regression tests | ✅ Met      | enforced per-file in `vitest.config.ts` (209 tests)            |
+| Tests: 100% critical / ≥90% line+branch; regression tests | ✅ Met      | enforced per-file in `vitest.config.ts` (279 tests)            |
 | Lint/format/type-check clean                              | ✅ Met      | `pnpm check` green                                             |
 | CI security gates (SAST/SCA/secret/IaC/image)             | ⚠️ Partial  | see EX-1 (repo not yet hosted); config committed               |
 | No secrets committed; sensitive data redacted             | ✅ Met      | token via provider only; client redacts; gitleaks config       |
@@ -33,14 +33,17 @@ and an **expiry** (time-box) — no permanent, silent exceptions.
 
 - **Rule:** `workflow-git`, `workflow-cicd` (protected `main`, signed commits,
   ≥1 approving review).
-- **Why deferred:** the project is a local greenfield with no hosting remote yet.
-  No commits have been made (commit/push are gated actions awaiting the human).
-- **Compensating control:** all gate checks (`pnpm check`) pass locally; the CI
-  workflow (`.github/workflows/ci.yml`) is committed and will enforce gates on
-  the first push; commit identity is preconfigured to the mandated noreply email.
-  All CI `uses:` actions are now **pinned to commit SHAs** (digests) with the tag
-  in a trailing comment (the SHA-pin sub-item is done; branch protection + signed
-  commits + review remain gated on repo creation).
+- **Why deferred:** the repo is now hosted on GitHub and changes land via PRs
+  (all commits authored with the mandated noreply email), but **branch
+  protection, required signed commits, and required-review enforcement** have not
+  yet been enabled on the host.
+- **Compensating control:** all gate checks (`pnpm check`) pass; the CI workflow
+  (`.github/workflows/ci.yml`) enforces gates on every PR; changes go through
+  PRs with a security-focused review (the `sdlc-reviewer`); commit identity is
+  the mandated noreply email. All CI `uses:` actions are **pinned to commit
+  SHAs** (digests) with the tag in a trailing comment (the SHA-pin sub-item is
+  done; enforced branch protection + signed-commit + review _rules_ remain to be
+  turned on in repo settings).
 - **Exit / expiry:** enable branch protection + required signed commits + review
   **at repository creation on GitHub, and before the first `npm publish`.**
 
@@ -77,7 +80,7 @@ and an **expiry** (time-box) — no permanent, silent exceptions.
 - **Why deferred:** `services/*`, `client.ts`, `schemas.ts`, `workspace.ts` are
   **excluded from the mutate set**. Not a test gap — each has real tests and ~99%
   line coverage — but the Stryker vitest-runner (9.6.1) only collects 44 of the
-  209 tests under **Vitest 4.1** (the client-graph test files aren't picked up),
+  279 tests under **Vitest 4.1** (the client-graph test files aren't picked up),
   so their mutants falsely report "no coverage".
 - **Compensating control:** these modules keep the ≥90% line/branch coverage gate
   (100% on critical globs) enforced in `vitest.config.ts`; schema validation has
@@ -141,10 +144,14 @@ and an **expiry** (time-box) — no permanent, silent exceptions.
   address, never the new mailbox; recovery address is **format-validated and
   fails closed** before the credential is built (CLI pre-create check +
   `buildWelcomeEmail` re-validates); outward send is **confirmed** unless
-  `--yes`; **plain-text only** (no HTML-injection surface); the body includes a
-  "change this password as soon as possible" instruction; the SMTP transport is
-  TLS and the password is never logged. `nodemailer >= 9.0.1` (clears the
-  message-misrouting advisory GHSA-mm7p-fcc7-pg87).
+  `--yes` (and `--yes` is **required** in a non-interactive shell); the message
+  is **multipart** (styled HTML + plain-text fallback) with **every interpolated
+  value HTML-escaped** and the login-URL scheme restricted to `http(s)`, so the
+  HTML body carries no injection surface (`escapeHtml` + the scheme guard in
+  `buildWelcomeEmail`); the body includes a "change this password as soon as
+  possible" instruction; the SMTP transport is TLS and the password is never
+  logged. `nodemailer >= 9.0.1` (clears the message-misrouting advisory
+  GHSA-mm7p-fcc7-pg87).
 - **Exit / expiry:** switch to a one-time reset/login link if PurelyMail adds a
   reset-token API. Re-evaluate at v1.0.0.
 
