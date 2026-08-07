@@ -273,6 +273,15 @@ export class CliContext {
     return { input: this.#input, output: this.#output, isTty: this.#isTty };
   }
 
+  /**
+   * Whether prompts can be answered interactively (a TTY is attached).
+   *
+   * @returns `true` when the session can prompt for confirmation.
+   */
+  public isInteractive(): boolean {
+    return this.#isTty;
+  }
+
   #buildClient(profile: Profile): PurelymailClient {
     const baseUrl = this.#opts.baseUrl ?? profile.baseUrl;
     return new PurelymailClient({

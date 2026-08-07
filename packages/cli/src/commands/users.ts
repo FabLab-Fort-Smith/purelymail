@@ -114,6 +114,15 @@ export function registerUsers(program: Command, ctxFrom: (cmd: Command) => CliCo
           if (ctx.notify() === undefined) {
             throw new CliError('--notify requires a [notify] SMTP section in your config file', 2);
           }
+          // Resolve confirm capability up front: refuse before creating anything
+          // rather than creating the user and then failing the outward-send
+          // confirmation in a non-interactive shell.
+          if (!ctx.yes && !ctx.isInteractive()) {
+            throw new CliError(
+              '--notify in a non-interactive shell requires --yes (to confirm emailing the credential)',
+              2,
+            );
+          }
         }
         await ctx.singleClient().users.create({
           userName: localPart,
