@@ -48,6 +48,13 @@ describe('build* (pure form -> core input)', () => {
     });
   });
 
+  it('buildCreateUser omits a blank recovery and rejects a malformed one', () => {
+    expect(buildCreateUser(form({ recoveryEmail: '' }))).not.toHaveProperty('recoveryEmail');
+    expect(() => buildCreateUser(form({ recoveryEmail: 'not-an-email' }))).toThrow(
+      /recovery email is not a valid/i,
+    );
+  });
+
   it('resolveNewUserPassword uses the generator only when generate is set', () => {
     expect(resolveNewUserPassword(form({ generate: false, password: 'typed' }), () => 'GEN')).toBe(
       'typed',
