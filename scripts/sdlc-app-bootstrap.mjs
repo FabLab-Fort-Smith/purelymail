@@ -71,6 +71,21 @@ function esc(s) {
     .replace(/'/g, '&#39;');
 }
 
+/**
+ * Whether an address is loopback or a private/mesh range — the manifest server
+ * carries the App private-key `code`, so it must never bind a public interface.
+ */
+function isPrivateHost(h) {
+  return (
+    h === 'localhost' ||
+    /^127\./.test(h) || // loopback
+    /^10\./.test(h) || // RFC1918 (incl. this ZeroTier /24)
+    /^192\.168\./.test(h) ||
+    /^172\.(1[6-9]|2\d|3[01])\./.test(h) ||
+    /^100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\./.test(h) // 100.64/10 CGNAT (Tailscale)
+  );
+}
+
 const args = parseArgs(process.argv.slice(2));
 const ORG = args.org ?? 'FabLab-Fort-Smith';
 const NAME = args.name ?? 'a2-sdlc-reviewer';
@@ -79,6 +94,18 @@ const PORT = Number(args.port ?? 8765);
 const KEY_OUT = args['key-out'] ?? join(homedir(), '.secrets', 'sdlc-reviewer.pem');
 const ENV_OUT = args['env-out'] ?? join(homedir(), '.secrets', 'purelymail.env');
 const REPO_URL = 'https://github.com/FabLab-Fort-Smith/purelymail';
+
+// Fail closed on an unsafe bind: never a public interface, always a valid port.
+if (!isPrivateHost(HOST)) {
+  process.stderr.write(
+    `Refusing to bind non-private host "${HOST}" (loopback/RFC1918/CGNAT only).\n`,
+  );
+  process.exit(1);
+}
+if (!Number.isInteger(PORT) || PORT < 1 || PORT > 65535) {
+  process.stderr.write(`Invalid --port "${args.port}" (want 1-65535).\n`);
+  process.exit(1);
+}
 
 const state = randomUUID();
 const redirectUrl = `http://${HOST}:${PORT}/cb`;
