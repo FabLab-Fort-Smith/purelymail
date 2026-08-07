@@ -15,6 +15,7 @@ export default tseslint.config(
       '**/*.config.js',
       '**/*.config.ts',
       '**/*.config.mjs', // stryker.config.mjs (config, not shipped code)
+      'scripts/**/*.mjs', // ops/dev helper scripts (not shipped); Prettier-checked
       '.stryker-tmp/**', // Stryker sandbox (mutated copies carry @ts-nocheck)
       'reports/**', // generated mutation/HTML reports
     ],
