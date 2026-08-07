@@ -44,17 +44,23 @@ and an **expiry** (time-box) — no permanent, silent exceptions.
   - All CI `uses:` actions **pinned to commit SHAs** (digests) with the tag in a
     trailing comment.
 - **Review-approver identity:** the required review is satisfied by the
-  **`a2-sdlc-reviewer` GitHub App** (least-privilege: `pull_requests:write`,
-  `contents:read`). Per PR, the independent, read-only `sdlc-reviewer` agent
-  reviews the diff; on an **approve** verdict, `scripts/sdlc-approve.mjs` mints a
-  short-lived App installation token and posts the APPROVE review. The **merge
-  stays a human action** (`workflow-gated-actions`) — the App never merges.
-- **Residual risk (accepted):** this is automation approving the project's own
-  pipeline output. Mitigations: the reviewer is a **separate, read-only,
-  adversarial** agent (distinct context, no write tools), the App is
-  repo-scoped + least-privilege, tokens are short-lived, and a human still
+  **`a2-sdlc-reviewer` GitHub App** (`pull_requests:write` + `contents:write`).
+  `contents:write` is **required by GitHub** for an App's approving review to
+  _count_ toward the required-review rule (with only `contents:read` the review
+  posts but does not satisfy protection). Per PR, the independent, read-only
+  `sdlc-reviewer` agent reviews the diff; on an **approve** verdict,
+  `scripts/sdlc-approve.mjs` mints a short-lived App installation token and posts
+  the APPROVE review. The **merge stays a human action**
+  (`workflow-gated-actions`) — the App never merges.
+- **Residual risk (accepted):** (a) automation approving the project's own
+  pipeline output; (b) the App's `contents:write` lets it _push_ to branches.
+  Mitigations: the reviewer is a **separate, read-only, adversarial** agent
+  (distinct context, no write tools); `main` stays protected (PR + review +
+  checks) and the App is **not** a bypass actor, so `contents:write` cannot
+  push to `main`; the approval scripts only ever post reviews (never push); the
+  App is repo-scoped; installation tokens are short-lived. A human still
   performs the merge. Re-evaluate when a second human maintainer joins (then the
-  App can supplement, not substitute, human review).
+  App supplements, not substitutes, human review).
 - **Remaining sub-items (pre-`npm publish`):**
   1. **Required signed commits** — not yet toggled (the API sub-endpoint was
      unavailable to the automation token); enable via **Settings → Branches →
