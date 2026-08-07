@@ -6,6 +6,23 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- **`@fablabfortsmith/purelymail-tui`** — the create-user form now presents a
+  **checkbox options panel** (↑/↓ move, Space toggles, Enter confirms) instead of
+  sequential y/n prompts: **auto-generate a strong password** (on by default) and
+  **email account details**. Enabling emailing reveals a **required, validated
+  recovery address** — the panel refuses to proceed without a valid one (fail
+  closed), and that address is **stored on the new account** as its recovery
+  address (passed to `createUser`).
+
+### Fixed
+
+- **`@fablabfortsmith/purelymail-tui`** — reject an empty password client-side on
+  user create (clear "password is required" message) instead of surfacing the
+  upstream `password: Too small` API error; `buildCreateUser` also throws on an
+  empty password (closes the generate-without-resolve footgun).
+
 ## [0.3.0] - 2026-08-06
 
 Adds secure password generation and new-account welcome emails. New fifth

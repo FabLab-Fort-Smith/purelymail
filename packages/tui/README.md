@@ -22,6 +22,12 @@ acting on that row's own account: create (`n`), edit users (`e`), delete
 account. Mutations go through the same `core` services as the CLI; secrets
 (passwords) are entered masked.
 
+Creating a user opens a **checkbox options panel** (↑/↓ move, Space toggles,
+Enter confirms): **generate a strong password** (on by default) and, when a
+`[notify]` SMTP section is configured, **email account details**. Enabling
+emailing requires a valid **recovery address** — it is the email destination
+and is stored on the new account as its recovery address.
+
 ## Run
 
 ```bash
